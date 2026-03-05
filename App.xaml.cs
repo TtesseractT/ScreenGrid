@@ -448,12 +448,7 @@ namespace ScreenGrid
             int style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_STYLE);
             int exStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE);
 
-            // Must have a caption (title bar)
-            bool hasCaption = (style & NativeMethods.WS_CAPTION) == NativeMethods.WS_CAPTION;
-            if (!hasCaption)
-                return false;
-
-            // Reject tool windows (unless they also have WS_EX_APPWINDOW)
+            // Reject tool windows (small floating palettes) unless they also have WS_EX_APPWINDOW
             bool isToolWindow = (exStyle & NativeMethods.WS_EX_TOOLWINDOW) != 0;
             bool isAppWindow = (exStyle & NativeMethods.WS_EX_APPWINDOW) != 0;
             if (isToolWindow && !isAppWindow)

@@ -70,6 +70,58 @@ namespace ScreenGrid
     }
 
     /// <summary>
+    /// Customizable overlay appearance settings stored alongside the grid config.
+    /// </summary>
+    public class OverlayAppearance
+    {
+        /// <summary>Overlay background alpha (0-255). Default 200.</summary>
+        public int OverlayAlpha { get; set; } = 200;
+
+        /// <summary>Accent color for highlighted zone and snap preview, as hex (#RRGGBB). Default #008CFF.</summary>
+        public string AccentColor { get; set; } = "#008CFF";
+
+        /// <summary>Zone grid cell fill alpha when NOT highlighted (0-255). Default 25.</summary>
+        public int ZoneFillAlpha { get; set; } = 25;
+
+        /// <summary>Zone grid cell border alpha (0-255). Default 65.</summary>
+        public int ZoneBorderAlpha { get; set; } = 65;
+
+        /// <summary>Highlighted zone fill alpha (0-255). Lower = more transparent. Default 35.</summary>
+        public int HighlightFillAlpha { get; set; } = 35;
+
+        /// <summary>Highlighted zone border alpha (0-255). Default 180.</summary>
+        public int HighlightBorderAlpha { get; set; } = 180;
+
+        /// <summary>Snap preview (projected window) fill alpha (0-255). Higher = more opaque. Default 100.</summary>
+        public int SnapPreviewFillAlpha { get; set; } = 100;
+
+        /// <summary>Snap preview border alpha (0-255). Default 220.</summary>
+        public int SnapPreviewBorderAlpha { get; set; } = 220;
+
+        /// <summary>Parse the AccentColor hex string to RGB bytes.</summary>
+        [JsonIgnore]
+        public (byte R, byte G, byte B) AccentRgb
+        {
+            get
+            {
+                try
+                {
+                    string hex = AccentColor.TrimStart('#');
+                    if (hex.Length == 6)
+                    {
+                        byte r = Convert.ToByte(hex[..2], 16);
+                        byte g = Convert.ToByte(hex[2..4], 16);
+                        byte b = Convert.ToByte(hex[4..6], 16);
+                        return (r, g, b);
+                    }
+                }
+                catch { }
+                return (0, 140, 255); // fallback
+            }
+        }
+    }
+
+    /// <summary>
     /// A complete grid configuration (set of rows) that can be saved/loaded as JSON.
     /// </summary>
     public class GridConfig
@@ -79,6 +131,9 @@ namespace ScreenGrid
 
         /// <summary>The rows that make up this grid.</summary>
         public List<GridRowDef> Rows { get; set; } = new();
+
+        /// <summary>Overlay appearance customization.</summary>
+        public OverlayAppearance Appearance { get; set; } = new();
 
         /// <summary>File extension for grid config files.</summary>
         public const string FileExtension = ".screengrid";

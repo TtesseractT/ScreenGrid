@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -21,7 +22,55 @@ namespace ScreenGrid
             InitializeComponent();
             _config = CloneConfig(config);
             TxtGridName.Text = _config.Name;
+            InitAppearanceControls();
             RebuildRowsUI();
+        }
+
+        // ── Appearance controls ─────────────────────────────────────────
+
+        private bool _suppressSliderEvents;
+
+        private void InitAppearanceControls()
+        {
+            _suppressSliderEvents = true;
+            var a = _config.Appearance;
+            TxtAccentColor.Text = a.AccentColor;
+            SliderOverlayAlpha.Value = a.OverlayAlpha;
+            SliderHighlightAlpha.Value = a.HighlightFillAlpha;
+            SliderSnapAlpha.Value = a.SnapPreviewFillAlpha;
+            _suppressSliderEvents = false;
+        }
+
+        private void OnSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_suppressSliderEvents) return;
+
+            _config.Appearance.OverlayAlpha = (int)SliderOverlayAlpha.Value;
+            _config.Appearance.HighlightFillAlpha = (int)SliderHighlightAlpha.Value;
+            _config.Appearance.HighlightBorderAlpha = Math.Min(255, (int)SliderHighlightAlpha.Value + 145);
+            _config.Appearance.SnapPreviewFillAlpha = (int)SliderSnapAlpha.Value;
+            _config.Appearance.SnapPreviewBorderAlpha = Math.Min(255, (int)SliderSnapAlpha.Value + 120);
+        }
+
+        private void OnAppearanceChanged(object sender, RoutedEventArgs e)
+        {
+            string hex = TxtAccentColor.Text.Trim();
+            if (!hex.StartsWith('#')) hex = "#" + hex;
+            if (System.Text.RegularExpressions.Regex.IsMatch(hex, "^#[0-9A-Fa-f]{6}$"))
+            {
+                _config.Appearance.AccentColor = hex;
+                TxtAccentColor.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+            }
+            else
+            {
+                TxtAccentColor.BorderBrush = Brushes.Red;
+            }
+        }
+
+        private void OnResetAppearance(object sender, RoutedEventArgs e)
+        {
+            _config.Appearance = new OverlayAppearance();
+            InitAppearanceControls();
         }
 
         // ── Row panel rendering ─────────────────────────────────────────
@@ -534,7 +583,21 @@ namespace ScreenGrid
 
         private static GridConfig CloneConfig(GridConfig src)
         {
-            var clone = new GridConfig { Name = src.Name };
+            var clone = new GridConfig
+            {
+                Name = src.Name,
+                Appearance = new OverlayAppearance
+                {
+                    OverlayAlpha = src.Appearance.OverlayAlpha,
+                    AccentColor = src.Appearance.AccentColor,
+                    ZoneFillAlpha = src.Appearance.ZoneFillAlpha,
+                    ZoneBorderAlpha = src.Appearance.ZoneBorderAlpha,
+                    HighlightFillAlpha = src.Appearance.HighlightFillAlpha,
+                    HighlightBorderAlpha = src.Appearance.HighlightBorderAlpha,
+                    SnapPreviewFillAlpha = src.Appearance.SnapPreviewFillAlpha,
+                    SnapPreviewBorderAlpha = src.Appearance.SnapPreviewBorderAlpha,
+                }
+            };
             foreach (var row in src.Rows)
                 clone.Rows.Add(new GridRowDef
                 {

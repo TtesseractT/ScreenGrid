@@ -225,6 +225,10 @@ namespace ScreenGrid
             {
                 if (eventType == NativeMethods.EVENT_SYSTEM_MOVESIZESTART)
                 {
+                    // Only activate for normal application windows (title bar, visible, not games/tools)
+                    if (!IsNormalAppWindow(hwnd))
+                        return;
+
                     _isDragging = true;
                     _draggedWindowHandle = hwnd;
                     _mouseTracker?.Start();
@@ -427,6 +431,72 @@ namespace ScreenGrid
         private static bool IsShiftHeld()
         {
             return (NativeMethods.GetAsyncKeyState(NativeMethods.VK_SHIFT) & 0x8000) != 0;
+        }
+
+        /// <summary>
+        /// Returns true only for normal resizable app windows with a title bar.
+        /// Rejects fullscreen/exclusive games, tool windows, invisible windows, etc.
+        /// </summary>
+        private static bool IsNormalAppWindow(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero || !NativeMethods.IsWindow(hwnd))
+                return false;
+
+            if (!NativeMethods.IsWindowVisible(hwnd))
+                return false;
+
+            int style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_STYLE);
+            int exStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE);
+
+            // Must have a caption (title bar)
+            bool hasCaption = (style & NativeMethods.WS_CAPTION) == NativeMethods.WS_CAPTION;
+            if (!hasCaption)
+                return false;
+
+            // Reject tool windows (unless they also have WS_EX_APPWINDOW)
+            bool isToolWindow = (exStyle & NativeMethods.WS_EX_TOOLWINDOW) != 0;
+            bool isAppWindow = (exStyle & NativeMethods.WS_EX_APPWINDOW) != 0;
+            if (isToolWindow && !isAppWindow)
+                return false;
+
+            // Reject known fullscreen game/overlay class names
+            var sb = new System.Text.StringBuilder(256);
+            NativeMethods.GetClassName(hwnd, sb, 256);
+            string className = sb.ToString();
+
+            // Common fullscreen game / overlay classes to reject
+            string[] blockedClasses = {
+                "UnityWndClass", "UnrealWindow", "LaunchUnrealUWindowsClient",
+                "SDL_app", "GLFW30", "ConsoleWindowClass",
+                "CryENGINE", "Source Engine", "Valve001"
+            };
+            foreach (var blocked in blockedClasses)
+            {
+                if (className.Equals(blocked, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+
+            // Reject windows covering the entire monitor (borderless fullscreen games)
+            NativeMethods.GetWindowRect(hwnd, out var wndRect);
+            var pt = new NativeMethods.POINT { X = wndRect.Left + 1, Y = wndRect.Top + 1 };
+            var hMon = NativeMethods.MonitorFromPoint(pt, NativeMethods.MONITOR_DEFAULTTONEAREST);
+            var mi = new NativeMethods.MONITORINFO { cbSize = Marshal.SizeOf<NativeMethods.MONITORINFO>() };
+            if (NativeMethods.GetMonitorInfo(hMon, ref mi))
+            {
+                var mon = mi.rcMonitor;
+                bool coversFullScreen =
+                    wndRect.Left <= mon.Left &&
+                    wndRect.Top <= mon.Top &&
+                    wndRect.Right >= mon.Right &&
+                    wndRect.Bottom >= mon.Bottom;
+
+                // A true maximized window is fine (it sits in the work area),
+                // but a borderless fullscreen window covers the whole monitor
+                if (coversFullScreen && !NativeMethods.IsZoomed(hwnd))
+                    return false;
+            }
+
+            return true;
         }
 
         // ── Shutdown ────────────────────────────────────────────────────

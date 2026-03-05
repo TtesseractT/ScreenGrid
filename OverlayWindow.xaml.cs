@@ -27,17 +27,31 @@ namespace ScreenGrid
         // ── Grid configuration (loaded from GridConfig) ─────────────────────────
         private GridConfig _gridConfig = GridConfig.CreateDefault();
 
-        // ── Colors ──────────────────────────────────────────────────────
-        private static readonly Color OverlayBg         = Color.FromArgb(200, 10, 10, 15);   // more opaque
-        private static readonly Color ZoneFill           = Color.FromArgb(25, 255, 255, 255);
-        private static readonly Color ZoneBorder         = Color.FromArgb(65, 255, 255, 255);
-        private static readonly Color HighlightFill      = Color.FromArgb(85, 0, 140, 255);
-        private static readonly Color HighlightBorder    = Color.FromArgb(220, 0, 140, 255);
-        private static readonly Color SnapPreviewFill    = Color.FromArgb(40, 0, 150, 255);   // more visible preview
-        private static readonly Color SnapPreviewStroke  = Color.FromArgb(160, 0, 150, 255);
+        // ── Colors (computed from appearance settings) ──────────────────
+        private Color _overlayBg;
+        private Color _zoneFill;
+        private Color _zoneBorder;
+        private Color _highlightFill;
+        private Color _highlightBorder;
+        private Color _snapPreviewFill;
+        private Color _snapPreviewStroke;
         private static readonly Color LabelPrimary       = Color.FromArgb(230, 255, 255, 255);
         private static readonly Color LabelSecondary     = Color.FromArgb(130, 255, 255, 255);
         private static readonly Color LabelDim           = Color.FromArgb(90, 255, 255, 255);
+
+        private void UpdateColorsFromAppearance()
+        {
+            var a = _gridConfig.Appearance;
+            var (r, g, b) = a.AccentRgb;
+
+            _overlayBg        = Color.FromArgb((byte)Math.Clamp(a.OverlayAlpha, 0, 255), 10, 10, 15);
+            _zoneFill         = Color.FromArgb((byte)Math.Clamp(a.ZoneFillAlpha, 0, 255), 255, 255, 255);
+            _zoneBorder       = Color.FromArgb((byte)Math.Clamp(a.ZoneBorderAlpha, 0, 255), 255, 255, 255);
+            _highlightFill    = Color.FromArgb((byte)Math.Clamp(a.HighlightFillAlpha, 0, 255), r, g, b);
+            _highlightBorder  = Color.FromArgb((byte)Math.Clamp(a.HighlightBorderAlpha, 0, 255), r, g, b);
+            _snapPreviewFill  = Color.FromArgb((byte)Math.Clamp(a.SnapPreviewFillAlpha, 0, 255), r, g, b);
+            _snapPreviewStroke = Color.FromArgb((byte)Math.Clamp(a.SnapPreviewBorderAlpha, 0, 255), r, g, b);
+        }
 
         // Snap preview label
         private TextBlock? _snapLabel;
@@ -46,6 +60,7 @@ namespace ScreenGrid
         public OverlayWindow()
         {
             InitializeComponent();
+            UpdateColorsFromAppearance();
             Loaded += OnLoaded;
         }
 
@@ -78,6 +93,7 @@ namespace ScreenGrid
         {
             _gridConfig = config;
             _visiblePairStartRow = 0;
+            UpdateColorsFromAppearance();
         }
 
         public void ResetVariantPair()
@@ -145,8 +161,8 @@ namespace ScreenGrid
             // Un-highlight previous
             if (_highlightedZone != null && _zoneBorders.TryGetValue(_highlightedZone, out var prev))
             {
-                prev.Background      = new SolidColorBrush(ZoneFill);
-                prev.BorderBrush     = new SolidColorBrush(ZoneBorder);
+                prev.Background      = new SolidColorBrush(_zoneFill);
+                prev.BorderBrush     = new SolidColorBrush(_zoneBorder);
                 prev.BorderThickness = new Thickness(1);
                 prev.Effect          = null;
                 _highlightedZone.IsHighlighted = false;
@@ -155,12 +171,12 @@ namespace ScreenGrid
             // Highlight new
             if (zone != null && _zoneBorders.TryGetValue(zone, out var cur))
             {
-                cur.Background      = new SolidColorBrush(HighlightFill);
-                cur.BorderBrush     = new SolidColorBrush(HighlightBorder);
+                cur.Background      = new SolidColorBrush(_highlightFill);
+                cur.BorderBrush     = new SolidColorBrush(_highlightBorder);
                 cur.BorderThickness = new Thickness(2);
                 cur.Effect = new DropShadowEffect
                 {
-                    Color       = HighlightBorder,
+                    Color       = _highlightBorder,
                     BlurRadius  = 24,
                     ShadowDepth = 0,
                     Opacity     = 0.6
@@ -300,7 +316,7 @@ namespace ScreenGrid
             {
                 Width  = Width,
                 Height = Height,
-                Fill   = new SolidColorBrush(OverlayBg)
+                Fill   = new SolidColorBrush(_overlayBg)
             };
             GridCanvas.Children.Add(bg);
 
@@ -387,8 +403,8 @@ namespace ScreenGrid
             // Snap preview rectangle (hidden until a zone is highlighted)
             _snapPreview = new Rectangle
             {
-                Fill            = new SolidColorBrush(SnapPreviewFill),
-                Stroke          = new SolidColorBrush(SnapPreviewStroke),
+                Fill            = new SolidColorBrush(_snapPreviewFill),
+                Stroke          = new SolidColorBrush(_snapPreviewStroke),
                 StrokeThickness = 3,
                 Visibility      = Visibility.Collapsed,
                 RadiusX         = 6,
@@ -466,8 +482,8 @@ namespace ScreenGrid
                 {
                     Width           = w,
                     Height          = h,
-                    Background      = new SolidColorBrush(ZoneFill),
-                    BorderBrush     = new SolidColorBrush(ZoneBorder),
+                    Background      = new SolidColorBrush(_zoneFill),
+                    BorderBrush     = new SolidColorBrush(_zoneBorder),
                     BorderThickness = new Thickness(1),
                     CornerRadius    = new CornerRadius(8),
                     Child           = stack

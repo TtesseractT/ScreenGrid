@@ -29,10 +29,10 @@ jobs:
       run: dotnet test -c Release --no-build --verbosity normal
 
     - name: Publish (framework-dependent)
-      run: dotnet publish -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=false -o ./artifacts/framework-dependent
+      run: dotnet publish ScreenGrid.csproj -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=false -o ./artifacts/framework-dependent
 
     - name: Publish (self-contained)
-      run: dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ./artifacts/self-contained
+      run: dotnet publish ScreenGrid.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ./artifacts/self-contained
 
     - name: Upload framework-dependent artifact
       uses: actions/upload-artifact@v4

@@ -1,0 +1,84 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build -c Release --no-restore
+
+    - name: Publish (framework-dependent)
+      run: dotnet publish -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=false -o ./artifacts/framework-dependent
+
+    - name: Publish (self-contained)
+      run: dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ./artifacts/self-contained
+
+    - name: Upload framework-dependent artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ScreenGrid-framework-dependent
+        path: artifacts/framework-dependent/ScreenGrid.exe
+
+    - name: Upload self-contained artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ScreenGrid-self-contained
+        path: artifacts/self-contained/ScreenGrid.exe
+
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: ScreenGrid-framework-dependent
+        path: ./framework-dependent
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: ScreenGrid-self-contained
+        path: ./self-contained
+
+    - name: Rename artifacts
+      run: |
+        mv ./framework-dependent/ScreenGrid.exe ./ScreenGrid-small.exe
+        mv ./self-contained/ScreenGrid.exe ./ScreenGrid-standalone.exe
+
+    - name: Create/Update rolling release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: Latest Build
+        body: |
+          **Automated build from `main`**
+
+          | File | Size | Requires .NET? |
+          |------|------|----------------|
+          | `ScreenGrid-small.exe` | ~200 KB | Yes (.NET 9) |
+          | `ScreenGrid-standalone.exe` | ~70 MB | No |
+        files: |
+          ScreenGrid-small.exe
+          ScreenGrid-standalone.exe
+        prerelease: true
+        make_latest: true

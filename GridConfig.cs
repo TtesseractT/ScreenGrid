@@ -118,15 +118,17 @@ namespace ScreenGrid
                 Name = "Default",
                 Rows = new List<GridRowDef>
                 {
-                    new() { Name = "HALVES",      Ratios = new List<int> { 1, 1 } },
-                    new() { Name = "THIRDS",      Ratios = new List<int> { 1, 1, 1 } },
-                    new() { Name = "4:3 LEFT",    Ratios = new List<int> { 4, 3 } },
-                    new() { Name = "4:3 CENTER",  Ratios = new List<int> { 3, 4, 3 } },
-                    new() { Name = "4:3 RIGHT",   Ratios = new List<int> { 3, 4 } },
-                    new() { Name = "QUARTERS",    Ratios = new List<int> { 1, 1, 1, 1 } },
-                    new() { Name = "FIFTHS",      Ratios = new List<int> { 1, 1, 1, 1, 1 } },
-                    new() { Name = "TOP / BOTTOM", Ratios = new List<int> { 1 },       HeightRatios = new List<int> { 1, 1 } },
-                    new() { Name = "HEIGHT ⅓",    Ratios = new List<int> { 1 },       HeightRatios = new List<int> { 1, 1, 1 } },
+                    new() { Name = "HALVES",       Ratios = new List<int> { 1, 1 } },
+                    new() { Name = "HALVES ½H",    Ratios = new List<int> { 1, 1 },          HeightRatios = new List<int> { 1, 1 } },
+                    new() { Name = "THIRDS",       Ratios = new List<int> { 1, 1, 1 } },
+                    new() { Name = "THIRDS ½H",    Ratios = new List<int> { 1, 1, 1 },       HeightRatios = new List<int> { 1, 1 } },
+                    new() { Name = "4:3 LEFT",     Ratios = new List<int> { 4, 3 } },
+                    new() { Name = "4:3 CENTER",   Ratios = new List<int> { 3, 4, 3 } },
+                    new() { Name = "4:3 RIGHT",    Ratios = new List<int> { 3, 4 } },
+                    new() { Name = "QUARTERS",     Ratios = new List<int> { 1, 1, 1, 1 } },
+                    new() { Name = "QUARTERS ½H",  Ratios = new List<int> { 1, 1, 1, 1 },    HeightRatios = new List<int> { 1, 1 } },
+                    new() { Name = "FIFTHS",       Ratios = new List<int> { 1, 1, 1, 1, 1 } },
+                    new() { Name = "FIFTHS ½H",    Ratios = new List<int> { 1, 1, 1, 1, 1 }, HeightRatios = new List<int> { 1, 1 } },
                 }
             };
         }

@@ -19,6 +19,8 @@ namespace ScreenGrid
         // Win-event hook (must be stored to prevent GC)
         private NativeMethods.WinEventDelegate? _winEventDelegate;
         private IntPtr _winEventHook;
+        private NativeMethods.LowLevelMouseProc? _mouseHookProc;
+        private IntPtr _mouseHook;
 
         // Drag state
         private IntPtr _draggedWindowHandle;
@@ -35,6 +37,7 @@ namespace ScreenGrid
             SetupTrayIcon();
             SetupOverlay();
             SetupWinEventHook();
+            SetupMouseWheelHook();
             SetupMouseTracker();
         }
 
@@ -70,17 +73,13 @@ namespace ScreenGrid
                 "HOW TO USE:\n" +
                 "1. Start dragging any window by its title bar.\n" +
                 "2. While dragging, hold the SHIFT key.\n" +
-                "3. A grid overlay appears with five rows:\n" +
-                "       • Halves   (2 columns)\n" +
-                "       • Thirds   (3 columns)\n" +
-                "       • 4:3      (2 columns, 4:3 ratio)\n" +
-                "       • Quarters (4 columns)\n" +
-                "       • Fifths   (5 columns)\n" +
-                "4. Drag to the desired zone – it highlights.\n" +
-                "5. Release the mouse button to snap the window.\n\n" +
+                "3. Two grid variants are shown at a time.\n" +
+                "4. Scroll the mouse wheel (up/down) to switch pairs.\n" +
+                "5. Drag to the desired zone – it highlights.\n" +
+                "6. Release the mouse button to snap the window.\n\n" +
                 "Release SHIFT at any time to cancel.\n" +
-                "The window snaps to the full height of your\n" +
-                "screen at the chosen column width.",
+                "Tip: the overlay header shows Pair X/Y and reminds\n" +
+                "you to scroll for more variants.",
                 "ScreenGrid",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -164,7 +163,7 @@ namespace ScreenGrid
         {
             var result = MessageBox.Show(
                 "Reset the grid layout to the built-in defaults?\n\n" +
-                "This will restore: Halves, Thirds, 4:3, Quarters, and Fifths.\n" +
+                "This will restore default pairs (full-height + ½H variants).\n" +
                 "Your current layout will be replaced.",
                 "Reset to Defaults",
                 MessageBoxButton.YesNo,
@@ -235,6 +234,38 @@ namespace ScreenGrid
             _mouseTracker.Tick += OnMouseTrackerTick;
         }
 
+        private void SetupMouseWheelHook()
+        {
+            _mouseHookProc = MouseHookCallback;
+            _mouseHook = NativeMethods.SetWindowsHookEx(
+                NativeMethods.WH_MOUSE_LL,
+                _mouseHookProc,
+                IntPtr.Zero,
+                0);
+        }
+
+        private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0
+                && wParam.ToInt32() == NativeMethods.WM_MOUSEWHEEL
+                && _isDragging
+                && _overlayVisible
+                && IsShiftHeld()
+                && _overlay != null)
+            {
+                var data = Marshal.PtrToStructure<NativeMethods.MSLLHOOKSTRUCT>(lParam);
+                short delta = unchecked((short)((data.mouseData >> 16) & 0xFFFF));
+                int direction = delta > 0 ? -1 : 1;
+
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    _overlay?.ScrollVariantPair(direction);
+                }));
+            }
+
+            return NativeMethods.CallNextHookEx(_mouseHook, nCode, wParam, lParam);
+        }
+
         private void OnMouseTrackerTick(object? sender, EventArgs e)
         {
             if (!_isDragging)
@@ -284,6 +315,7 @@ namespace ScreenGrid
             if (!NativeMethods.GetMonitorInfo(hMonitor, ref mi))
                 return;
 
+            _overlay.ResetVariantPair();
             _overlay.SetupForScreen(mi.rcWork);
             _overlay.ShowOverlay();
             _overlayVisible = true;
@@ -303,23 +335,40 @@ namespace ScreenGrid
             var zone = _overlay.GetHighlightedZone();
             if (zone == null || _draggedWindowHandle == IntPtr.Zero) return;
 
+            IntPtr hwnd = _draggedWindowHandle;
+
+            // Validate the window handle is still valid
+            if (!NativeMethods.IsWindow(hwnd))
+            {
+                System.Diagnostics.Debug.WriteLine("SnapWindow: handle is no longer valid");
+                return;
+            }
+
+            // If the window is maximized, restore it first so MoveWindow/SetWindowPos works
+            if (NativeMethods.IsZoomed(hwnd))
+            {
+                NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+                // Small delay to let the window finish restoring
+                System.Threading.Thread.Sleep(50);
+            }
+
             int x = (int)zone.SnapBounds.X;
             int y = (int)zone.SnapBounds.Y;
             int w = (int)zone.SnapBounds.Width;
             int h = (int)zone.SnapBounds.Height;
 
-            // Compensate for Windows 10 invisible borders (DWM extended frame)
+            // Compensate for Windows 10/11 invisible borders (DWM extended frame)
             try
             {
                 int hr = NativeMethods.DwmGetWindowAttribute(
-                    _draggedWindowHandle,
+                    hwnd,
                     NativeMethods.DWMWA_EXTENDED_FRAME_BOUNDS,
                     out NativeMethods.RECT frameRect,
                     Marshal.SizeOf<NativeMethods.RECT>());
 
                 if (hr == 0)
                 {
-                    NativeMethods.GetWindowRect(_draggedWindowHandle, out NativeMethods.RECT windowRect);
+                    NativeMethods.GetWindowRect(hwnd, out NativeMethods.RECT windowRect);
 
                     int borderL = frameRect.Left   - windowRect.Left;
                     int borderT = frameRect.Top    - windowRect.Top;
@@ -337,7 +386,13 @@ namespace ScreenGrid
                 // Fallback: just use raw zone bounds
             }
 
-            NativeMethods.MoveWindow(_draggedWindowHandle, x, y, w, h, true);
+            // Try MoveWindow first, then SetWindowPos as fallback
+            if (!NativeMethods.MoveWindow(hwnd, x, y, w, h, true))
+            {
+                System.Diagnostics.Debug.WriteLine("MoveWindow failed, trying SetWindowPos");
+                NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, w, h,
+                    NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_FRAMECHANGED);
+            }
         }
 
         // ── Helpers ─────────────────────────────────────────────────────
@@ -357,6 +412,12 @@ namespace ScreenGrid
                 _winEventHook = IntPtr.Zero;
             }
 
+            if (_mouseHook != IntPtr.Zero)
+            {
+                NativeMethods.UnhookWindowsHookEx(_mouseHook);
+                _mouseHook = IntPtr.Zero;
+            }
+
             _mouseTracker?.Stop();
             _trayIcon?.Dispose();
             _trayIcon = null;
@@ -367,6 +428,11 @@ namespace ScreenGrid
 
         protected override void OnExit(ExitEventArgs e)
         {
+            if (_mouseHook != IntPtr.Zero)
+            {
+                NativeMethods.UnhookWindowsHookEx(_mouseHook);
+                _mouseHook = IntPtr.Zero;
+            }
             _trayIcon?.Dispose();
             base.OnExit(e);
         }

@@ -21,6 +21,18 @@ namespace ScreenGrid
         [DllImport("user32.dll")]
         public static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
+        // ── Low-level Mouse Hook ───────────────────────────────────────
+        public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll")]
+        public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
         // ── Window Positioning ──────────────────────────────────────────
         [DllImport("user32.dll")]
         public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
@@ -65,6 +77,25 @@ namespace ScreenGrid
         public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute,
             out RECT pvAttribute, int cbAttribute);
 
+        // ── Window State ────────────────────────────────────────────────
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsIconic(IntPtr hWnd);   // minimized?
+
+        [DllImport("user32.dll")]
+        public static extern bool IsZoomed(IntPtr hWnd);   // maximized?
+
+        [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
         // ── Icon (cleanup) ──────────────────────────────────────────────
         [DllImport("user32.dll")]
         public static extern bool DestroyIcon(IntPtr handle);
@@ -77,11 +108,22 @@ namespace ScreenGrid
         public const uint WINEVENT_OUTOFCONTEXT      = 0x0000;
         public const uint WINEVENT_SKIPOWNPROCESS    = 0x0002;
 
+        // Hooks / mouse messages
+        public const int WH_MOUSE_LL = 14;
+        public const int WM_MOUSEWHEEL = 0x020A;
+
         // Extended window styles
         public const int GWL_EXSTYLE        = -20;
+        public const int GWL_STYLE          = -16;
         public const int WS_EX_TRANSPARENT  = 0x00000020;
         public const int WS_EX_TOOLWINDOW   = 0x00000080;
         public const int WS_EX_NOACTIVATE   = 0x08000000;
+        public const int WS_MAXIMIZEBOX     = 0x00010000;
+        public const int WS_THICKFRAME      = 0x00040000;
+        public const int WS_CAPTION         = 0x00C00000;
+
+        // ShowWindow commands
+        public const int SW_RESTORE         = 9;
 
         // Virtual key codes
         public const int VK_SHIFT   = 0x10;
@@ -96,7 +138,9 @@ namespace ScreenGrid
         public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
 
         // SetWindowPos flags
-        public const uint SWP_NOZORDER = 0x0004;
+        public const uint SWP_NOZORDER       = 0x0004;
+        public const uint SWP_NOACTIVATE     = 0x0010;
+        public const uint SWP_FRAMECHANGED   = 0x0020;
 
         // ── Structures ──────────────────────────────────────────────────
 
@@ -123,6 +167,16 @@ namespace ScreenGrid
             public RECT rcMonitor;
             public RECT rcWork;
             public uint dwFlags;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MSLLHOOKSTRUCT
+        {
+            public POINT pt;
+            public uint mouseData;
+            public uint flags;
+            public uint time;
+            public IntPtr dwExtraInfo;
         }
     }
 }

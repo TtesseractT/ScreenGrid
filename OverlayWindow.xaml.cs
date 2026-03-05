@@ -18,6 +18,7 @@ namespace ScreenGrid
         private readonly Dictionary<GridZone, Border> _zoneBorders = new();
         private GridZone? _highlightedZone;
         private Rectangle? _snapPreview;
+        private int _visiblePairStartRow;
 
         // ── Screen info (physical pixels) ───────────────────────────────
         private NativeMethods.RECT _workArea;
@@ -76,6 +77,30 @@ namespace ScreenGrid
         public void SetGridConfig(GridConfig config)
         {
             _gridConfig = config;
+            _visiblePairStartRow = 0;
+        }
+
+        public void ResetVariantPair()
+        {
+            _visiblePairStartRow = 0;
+        }
+
+        public void ScrollVariantPair(int direction)
+        {
+            int rowCount = _gridConfig.Rows.Count;
+            if (rowCount <= 2) return;
+
+            int maxStart = Math.Max(0, ((rowCount - 1) / 2) * 2);
+            int next = _visiblePairStartRow + (direction > 0 ? 2 : -2);
+            if (next < 0) next = 0;
+            if (next > maxStart) next = maxStart;
+            if (next == _visiblePairStartRow) return;
+
+            _visiblePairStartRow = next;
+            _highlightedZone = null;
+            BuildZones();
+            RenderZones();
+            UpdateSnapPreview(null);
         }
 
         /// <summary>
@@ -183,7 +208,7 @@ namespace ScreenGrid
             int screenLeft = _workArea.Left;
             int screenTop  = _workArea.Top;
 
-            var rows = _gridConfig.Rows;
+            var rows = GetVisibleRows();
             int rowCount = rows.Count;
             if (rowCount == 0) return;
 
@@ -250,6 +275,19 @@ namespace ScreenGrid
             }
         }
 
+        private List<GridRowDef> GetVisibleRows()
+        {
+            var rows = _gridConfig.Rows;
+            if (rows.Count <= 2)
+                return rows;
+
+            if (_visiblePairStartRow >= rows.Count)
+                _visiblePairStartRow = Math.Max(0, ((rows.Count - 1) / 2) * 2);
+
+            int take = Math.Min(2, rows.Count - _visiblePairStartRow);
+            return rows.GetRange(_visiblePairStartRow, take);
+        }
+
         // ── Zone rendering ──────────────────────────────────────────────
 
         private void RenderZones()
@@ -265,6 +303,86 @@ namespace ScreenGrid
                 Fill   = new SolidColorBrush(OverlayBg)
             };
             GridCanvas.Children.Add(bg);
+
+            var visibleRows = GetVisibleRows();
+            string pairTitle = visibleRows.Count == 2
+                ? $"{visibleRows[0].Name}  +  {visibleRows[1].Name}"
+                : visibleRows[0].Name;
+            int totalPairs = Math.Max(1, (_gridConfig.Rows.Count + 1) / 2);
+            int currentPair = (_visiblePairStartRow / 2) + 1;
+
+            var headerBar = new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(150, 0, 0, 0)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(70, 255, 255, 255)),
+                BorderThickness = new Thickness(0, 0, 0, 1),
+                Width = Width,
+                Height = 68
+            };
+
+            var headerStack = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 8, 0, 0)
+            };
+
+            headerStack.Children.Add(new TextBlock
+            {
+                Text = pairTitle,
+                Foreground = new SolidColorBrush(Color.FromArgb(235, 255, 255, 255)),
+                FontSize = 20,
+                FontWeight = FontWeights.SemiBold,
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+
+            var dots = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 6, 0, 0)
+            };
+
+            for (int i = 1; i <= totalPairs; i++)
+            {
+                bool isActive = i == currentPair;
+                dots.Children.Add(new Ellipse
+                {
+                    Width = isActive ? 12 : 8,
+                    Height = isActive ? 12 : 8,
+                    Margin = new Thickness(4, 0, 4, 0),
+                    Fill = new SolidColorBrush(isActive
+                        ? Color.FromArgb(230, 0, 170, 255)
+                        : Color.FromArgb(110, 255, 255, 255)),
+                    Stroke = new SolidColorBrush(Color.FromArgb(190, 255, 255, 255)),
+                    StrokeThickness = isActive ? 1.2 : 0.8
+                });
+            }
+
+            headerStack.Children.Add(dots);
+            headerBar.Child = headerStack;
+
+            Canvas.SetLeft(headerBar, 0);
+            Canvas.SetTop(headerBar, 0);
+            Panel.SetZIndex(headerBar, 7);
+            GridCanvas.Children.Add(headerBar);
+
+            var scrollHint = new TextBlock
+            {
+                Text = "Scroll mouse wheel for more variants",
+                Foreground = new SolidColorBrush(Color.FromArgb(205, 255, 255, 255)),
+                FontSize = 13,
+                FontWeight = FontWeights.Medium,
+                Background = new SolidColorBrush(Color.FromArgb(120, 0, 0, 0)),
+                Padding = new Thickness(10, 5, 10, 5)
+            };
+            scrollHint.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(scrollHint, Math.Max(10, (Width - scrollHint.DesiredSize.Width) / 2));
+            Canvas.SetTop(scrollHint, 74);
+            Panel.SetZIndex(scrollHint, 7);
+            GridCanvas.Children.Add(scrollHint);
 
             // Snap preview rectangle (hidden until a zone is highlighted)
             _snapPreview = new Rectangle
@@ -294,7 +412,7 @@ namespace ScreenGrid
             Panel.SetZIndex(_snapLabel, 5);
 
             // Row separators (subtle horizontal lines between bands)
-            int rowCount = _gridConfig.Rows.Count;
+            int rowCount = visibleRows.Count;
             for (int i = 1; i < rowCount; i++)
             {
                 double y = (Height / rowCount) * i;
@@ -328,16 +446,6 @@ namespace ScreenGrid
 
                 stack.Children.Add(new TextBlock
                 {
-                    Text                = _gridConfig.Rows.Count > zone.Row ? _gridConfig.Rows[zone.Row].Name : "",
-                    Foreground          = new SolidColorBrush(LabelSecondary),
-                    FontSize            = 13,
-                    FontWeight          = FontWeights.Normal,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin              = new Thickness(0, 0, 0, 2)
-                });
-
-                stack.Children.Add(new TextBlock
-                {
                     Text                = zone.Label,
                     Foreground          = new SolidColorBrush(LabelPrimary),
                     FontSize            = 34,
@@ -347,9 +455,9 @@ namespace ScreenGrid
 
                 stack.Children.Add(new TextBlock
                 {
-                    Text                = $"{(int)zone.SnapBounds.Width} \u00D7 {(int)zone.SnapBounds.Height}",
+                    Text                = visibleRows.Count > zone.Row ? visibleRows[zone.Row].Name : "",
                     Foreground          = new SolidColorBrush(LabelDim),
-                    FontSize            = 11,
+                    FontSize            = 12,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     Margin              = new Thickness(0, 4, 0, 0)
                 });

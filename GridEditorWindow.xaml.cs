@@ -4,12 +4,14 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace ScreenGrid
 {
     public partial class GridEditorWindow : Window
     {
         private GridConfig _config;
+        private int _previewRowIndex = -1;
 
         /// <summary>Raised when the user clicks Apply. The handler receives the new config.</summary>
         public event Action<GridConfig>? Applied;
@@ -40,132 +42,200 @@ namespace ScreenGrid
                     BorderThickness = new Thickness(1),
                     CornerRadius    = new CornerRadius(5),
                     Margin          = new Thickness(0, 0, 0, 6),
-                    Padding         = new Thickness(10, 8, 10, 8)
+                    Padding         = new Thickness(10, 10, 10, 10)
                 };
 
-                var grid = new Grid();
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+                var rowStack = new StackPanel();
 
-                // Row number
+                var header = new Grid();
+                header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+                header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+
                 var lblNum = new TextBlock
                 {
                     Text              = $"#{i + 1}",
-                    Foreground        = new SolidColorBrush(Color.FromArgb(255, 120, 120, 170)),
+                    Foreground        = new SolidColorBrush(Color.FromArgb(255, 150, 150, 200)),
                     FontSize          = 13,
+                    FontWeight        = FontWeights.SemiBold,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin            = new Thickness(0, 0, 10, 0)
                 };
                 Grid.SetColumn(lblNum, 0);
-                grid.Children.Add(lblNum);
+                header.Children.Add(lblNum);
 
-                // Name input
-                var txtName = new TextBox
+                var lblTitle = new TextBlock
                 {
-                    Text         = row.Name,
-                    Width        = 120,
-                    Height       = 28,
-                    FontSize     = 13,
-                    Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
-                    Foreground   = Brushes.White,
-                    BorderBrush  = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102)),
-                    Padding      = new Thickness(5, 3, 5, 3),
-                    VerticalContentAlignment = VerticalAlignment.Center,
-                    Margin       = new Thickness(0, 0, 10, 0)
+                    Text = "Row",
+                    Foreground = new SolidColorBrush(Color.FromArgb(255, 180, 180, 220)),
+                    FontSize = 12,
+                    Margin = new Thickness(0, 0, 0, 4)
                 };
-                txtName.TextChanged += (_, _) => row.Name = txtName.Text;
-                Grid.SetColumn(txtName, 1);
-                grid.Children.Add(txtName);
+                Grid.SetColumn(lblTitle, 1);
+                header.Children.Add(lblTitle);
 
-                // Ratios display + edit
-                var ratiosPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-                var lblRatios = new TextBlock
+                var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+                var btnPreview = CreateSmallButton("Preview", "Show this row on the right", 64);
+                btnPreview.Click += (_, _) =>
                 {
-                    Text              = "W:",
-                    Foreground        = new SolidColorBrush(Color.FromArgb(255, 160, 160, 200)),
-                    FontSize          = 12,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin            = new Thickness(0, 0, 4, 0),
-                    ToolTip           = "Width ratios (columns)"
+                    _previewRowIndex = rowIndex;
+                    RenderOrientationPreview();
                 };
-                ratiosPanel.Children.Add(lblRatios);
+                actions.Children.Add(btnPreview);
 
-                var txtRatios = new TextBox
-                {
-                    Text         = string.Join(" : ", row.Ratios),
-                    Width        = 110,
-                    Height       = 28,
-                    FontSize     = 13,
-                    Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
-                    Foreground   = Brushes.White,
-                    BorderBrush  = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102)),
-                    Padding      = new Thickness(5, 3, 5, 3),
-                    VerticalContentAlignment = VerticalAlignment.Center,
-                    ToolTip      = "Column ratios separated by : (e.g. 1:1:1 or 4:3)"
-                };
-                txtRatios.LostFocus += (_, _) => ParseRatios(txtRatios, row);
-                ratiosPanel.Children.Add(txtRatios);
-
-                // Height ratios edit
-                var lblHeight = new TextBlock
-                {
-                    Text              = "H:",
-                    Foreground        = new SolidColorBrush(Color.FromArgb(255, 160, 160, 200)),
-                    FontSize          = 12,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin            = new Thickness(10, 0, 4, 0),
-                    ToolTip           = "Height ratios (vertical split, leave empty for full height)"
-                };
-                ratiosPanel.Children.Add(lblHeight);
-
-                var txtHeight = new TextBox
-                {
-                    Text         = row.HasHeightSplit ? string.Join(" : ", row.HeightRatios!) : "",
-                    Width        = 80,
-                    Height       = 28,
-                    FontSize     = 13,
-                    Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
-                    Foreground   = Brushes.White,
-                    BorderBrush  = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102)),
-                    Padding      = new Thickness(5, 3, 5, 3),
-                    VerticalContentAlignment = VerticalAlignment.Center,
-                    ToolTip      = "Height ratios separated by : (e.g. 1:1 for top/bottom, empty = full height)"
-                };
-                txtHeight.LostFocus += (_, _) => ParseHeightRatios(txtHeight, row);
-                ratiosPanel.Children.Add(txtHeight);
-
-                Grid.SetColumn(ratiosPanel, 2);
-                grid.Children.Add(ratiosPanel);
-
-                // Move up
-                var btnUp = CreateSmallButton("\u25B2", "Move up");
+                var btnUp = CreateSmallButton("↑", "Move row up", 34);
                 btnUp.Click += (_, _) => { MoveRow(rowIndex, -1); };
                 btnUp.IsEnabled = i > 0;
-                Grid.SetColumn(btnUp, 3);
-                grid.Children.Add(btnUp);
+                actions.Children.Add(btnUp);
 
-                // Move down
-                var btnDown = CreateSmallButton("\u25BC", "Move down");
+                var btnDown = CreateSmallButton("↓", "Move row down", 34);
                 btnDown.Click += (_, _) => { MoveRow(rowIndex, 1); };
                 btnDown.IsEnabled = i < _config.Rows.Count - 1;
-                Grid.SetColumn(btnDown, 4);
-                grid.Children.Add(btnDown);
+                actions.Children.Add(btnDown);
 
-                // Delete
-                var btnDel = CreateSmallButton("\u2716", "Remove row");
+                var btnCopy = CreateSmallButton("Copy", "Duplicate row", 54);
+                btnCopy.Click += (_, _) =>
+                {
+                    DuplicateRow(rowIndex);
+                };
+                actions.Children.Add(btnCopy);
+
+                var btnDel = CreateSmallButton("Delete", "Remove row", 66);
                 btnDel.Click += (_, _) =>
                 {
                     _config.Rows.RemoveAt(rowIndex);
                     RebuildRowsUI();
                 };
-                Grid.SetColumn(btnDel, 5);
-                grid.Children.Add(btnDel);
+                actions.Children.Add(btnDel);
 
-                rowPanel.Child = grid;
+                Grid.SetColumn(actions, 2);
+                header.Children.Add(actions);
+                rowStack.Children.Add(header);
+
+                var body = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+                body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var txtName = new TextBox
+                {
+                    Text         = row.Name,
+                    Height       = 30,
+                    FontSize     = 13,
+                    Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
+                    Foreground   = Brushes.White,
+                    BorderBrush  = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102)),
+                    Padding      = new Thickness(5, 3, 5, 3),
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    Margin       = new Thickness(0, 0, 8, 0)
+                };
+                txtName.TextChanged += (_, _) => row.Name = txtName.Text;
+                txtName.TextChanged += (_, _) => { if (_previewRowIndex == rowIndex) RenderOrientationPreview(); };
+
+                var namePanel = new StackPanel();
+                namePanel.Children.Add(new TextBlock
+                {
+                    Text = "Name",
+                    Foreground = new SolidColorBrush(Color.FromArgb(255, 180, 180, 220)),
+                    FontSize = 12,
+                    Margin = new Thickness(0, 0, 0, 4)
+                });
+                namePanel.Children.Add(txtName);
+                Grid.SetColumn(namePanel, 0);
+                body.Children.Add(namePanel);
+
+                var widthPanel = new StackPanel { Margin = new Thickness(0, 0, 8, 0) };
+                widthPanel.Children.Add(new TextBlock
+                {
+                    Text = "Columns (W)",
+                    Foreground = new SolidColorBrush(Color.FromArgb(255, 180, 180, 220)),
+                    FontSize = 12,
+                    Margin = new Thickness(0, 0, 0, 4),
+                    ToolTip = "Column width ratios (examples: 1:1, 1:1:1, 4:3)"
+                });
+
+                var txtRatios = new TextBox
+                {
+                    Text         = string.Join(" : ", row.Ratios),
+                    Height       = 30,
+                    FontSize     = 13,
+                    Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
+                    Foreground   = Brushes.White,
+                    BorderBrush  = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102)),
+                    Padding      = new Thickness(5, 3, 5, 3),
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    ToolTip      = "Use : between values. Example: 1:1:1"
+                };
+                txtRatios.LostFocus += (_, _) => ParseRatios(txtRatios, row);
+                txtRatios.LostFocus += (_, _) => { if (_previewRowIndex == rowIndex) RenderOrientationPreview(); };
+                widthPanel.Children.Add(txtRatios);
+                Grid.SetColumn(widthPanel, 1);
+                body.Children.Add(widthPanel);
+
+                var heightPanel = new StackPanel();
+                heightPanel.Children.Add(new TextBlock
+                {
+                    Text = "Height (H, optional)",
+                    Foreground = new SolidColorBrush(Color.FromArgb(255, 180, 180, 220)),
+                    FontSize = 12,
+                    Margin = new Thickness(0, 0, 0, 4),
+                    ToolTip = "Vertical split ratios. Empty = full height"
+                });
+
+                var txtHeight = new TextBox
+                {
+                    Text         = row.HasHeightSplit ? string.Join(" : ", row.HeightRatios!) : "",
+                    Height       = 30,
+                    FontSize     = 13,
+                    Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
+                    Foreground   = Brushes.White,
+                    BorderBrush  = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102)),
+                    Padding      = new Thickness(5, 3, 5, 3),
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    ToolTip      = "Examples: 1:1 (top/bottom), 1:1:1 (thirds), empty (full height)"
+                };
+                txtHeight.LostFocus += (_, _) => ParseHeightRatios(txtHeight, row);
+                txtHeight.LostFocus += (_, _) => { if (_previewRowIndex == rowIndex) RenderOrientationPreview(); };
+                heightPanel.Children.Add(txtHeight);
+
+                var heightQuick = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 0) };
+                var btnFullHeight = CreateSmallButton("Full", "No height split", 54);
+                btnFullHeight.Click += (_, _) =>
+                {
+                    row.HeightRatios = null;
+                    txtHeight.Text = "";
+                    txtHeight.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+                    if (_previewRowIndex == rowIndex) RenderOrientationPreview();
+                };
+                heightQuick.Children.Add(btnFullHeight);
+
+                var btnTopBottom = CreateSmallButton("1:1", "Top/Bottom split", 50);
+                btnTopBottom.Click += (_, _) =>
+                {
+                    row.HeightRatios = new List<int> { 1, 1 };
+                    txtHeight.Text = "1 : 1";
+                    txtHeight.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+                    if (_previewRowIndex == rowIndex) RenderOrientationPreview();
+                };
+                heightQuick.Children.Add(btnTopBottom);
+
+                var btnThirds = CreateSmallButton("1:1:1", "Three vertical splits", 64);
+                btnThirds.Click += (_, _) =>
+                {
+                    row.HeightRatios = new List<int> { 1, 1, 1 };
+                    txtHeight.Text = "1 : 1 : 1";
+                    txtHeight.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+                    if (_previewRowIndex == rowIndex) RenderOrientationPreview();
+                };
+                heightQuick.Children.Add(btnThirds);
+                heightPanel.Children.Add(heightQuick);
+
+                Grid.SetColumn(heightPanel, 2);
+                body.Children.Add(heightPanel);
+
+                rowStack.Children.Add(body);
+
+                rowPanel.Child = rowStack;
                 RowsPanel.Children.Add(rowPanel);
             }
 
@@ -180,14 +250,21 @@ namespace ScreenGrid
                     HorizontalAlignment = HorizontalAlignment.Center
                 });
             }
+
+            if (_config.Rows.Count == 0)
+                _previewRowIndex = -1;
+            else if (_previewRowIndex < 0 || _previewRowIndex >= _config.Rows.Count)
+                _previewRowIndex = 0;
+
+            RenderOrientationPreview();
         }
 
-        private Button CreateSmallButton(string text, string tooltip)
+        private Button CreateSmallButton(string text, string tooltip, double width = 30)
         {
             return new Button
             {
                 Content    = text,
-                Width      = 30,
+                Width      = width,
                 Height     = 28,
                 FontSize   = 12,
                 Margin     = new Thickness(3, 0, 0, 0),
@@ -206,7 +283,103 @@ namespace ScreenGrid
             var tmp = _config.Rows[index];
             _config.Rows[index] = _config.Rows[newIndex];
             _config.Rows[newIndex] = tmp;
+
+            if (_previewRowIndex == index) _previewRowIndex = newIndex;
+            else if (_previewRowIndex == newIndex) _previewRowIndex = index;
+
             RebuildRowsUI();
+        }
+
+        private void DuplicateRow(int index)
+        {
+            if (index < 0 || index >= _config.Rows.Count) return;
+
+            var source = _config.Rows[index];
+            var copy = new GridRowDef
+            {
+                Name = source.Name + " Copy",
+                Ratios = new List<int>(source.Ratios),
+                HeightRatios = source.HeightRatios != null ? new List<int>(source.HeightRatios) : null
+            };
+
+            _config.Rows.Insert(index + 1, copy);
+            _previewRowIndex = index + 1;
+            RebuildRowsUI();
+        }
+
+        private void RenderOrientationPreview()
+        {
+            if (PreviewCanvas == null || TxtPreviewName == null)
+                return;
+
+            PreviewCanvas.Children.Clear();
+
+            if (_previewRowIndex < 0 || _previewRowIndex >= _config.Rows.Count)
+            {
+                TxtPreviewName.Text = "Select a row to preview";
+                return;
+            }
+
+            var row = _config.Rows[_previewRowIndex];
+            TxtPreviewName.Text = row.Name;
+
+            double width = Math.Max(240, PreviewCanvas.ActualWidth > 1 ? PreviewCanvas.ActualWidth - 4 : 280);
+            double height = Math.Max(180, PreviewCanvas.ActualHeight > 1 ? PreviewCanvas.ActualHeight - 4 : 220);
+            const double pad = 6;
+
+            var frame = new Border
+            {
+                Width = width,
+                Height = height,
+                BorderBrush = new SolidColorBrush(Color.FromArgb(130, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                Background = new SolidColorBrush(Color.FromArgb(35, 255, 255, 255)),
+                CornerRadius = new CornerRadius(4)
+            };
+            Canvas.SetLeft(frame, 2);
+            Canvas.SetTop(frame, 2);
+            PreviewCanvas.Children.Add(frame);
+
+            var heights = row.HasHeightSplit ? row.HeightRatios! : new List<int> { 1 };
+            int totalCols = Math.Max(1, row.Ratios.Sum());
+            int totalHeights = Math.Max(1, heights.Sum());
+
+            var palette = new[]
+            {
+                Color.FromArgb(210, 80, 160, 255),
+                Color.FromArgb(210, 86, 201, 156),
+                Color.FromArgb(210, 245, 166, 35),
+                Color.FromArgb(210, 190, 120, 255),
+                Color.FromArgb(210, 244, 98, 146),
+                Color.FromArgb(210, 96, 190, 255)
+            };
+
+            double x = 2 + pad;
+            for (int c = 0; c < row.Ratios.Count; c++)
+            {
+                double colW = (width - pad * 2) * row.Ratios[c] / totalCols;
+                double y = 2 + pad;
+                for (int r = 0; r < heights.Count; r++)
+                {
+                    double cellH = (height - pad * 2) * heights[r] / totalHeights;
+                    var rect = new Rectangle
+                    {
+                        Width = Math.Max(8, colW - 2),
+                        Height = Math.Max(8, cellH - 2),
+                        RadiusX = 3,
+                        RadiusY = 3,
+                        Fill = new SolidColorBrush(palette[(c + r) % palette.Length]),
+                        Stroke = new SolidColorBrush(Color.FromArgb(140, 15, 15, 30)),
+                        StrokeThickness = 1
+                    };
+
+                    Canvas.SetLeft(rect, x + 1);
+                    Canvas.SetTop(rect, y + 1);
+                    PreviewCanvas.Children.Add(rect);
+                    y += cellH;
+                }
+                x += colW;
+            }
         }
 
         private static void ParseRatios(TextBox txt, GridRowDef row)
@@ -282,14 +455,18 @@ namespace ScreenGrid
             RebuildRowsUI();
         }
 
-        private void OnAddRow(object sender, RoutedEventArgs e)     => AddRowDef("Custom", null, 1, 1);
+        private void OnAddRow(object sender, RoutedEventArgs e)         => AddRowDef("Custom", null, 1, 1);
         private void OnPresetHalves(object sender, RoutedEventArgs e)   => AddRowDef("HALVES", null, 1, 1);
+        private void OnPresetHalvesHalf(object sender, RoutedEventArgs e) => AddRowDef("HALVES ½H", new[] { 1, 1 }, 1, 1);
         private void OnPresetThirds(object sender, RoutedEventArgs e)   => AddRowDef("THIRDS", null, 1, 1, 1);
-        private void OnPreset43(object sender, RoutedEventArgs e)       => AddRowDef("4:3 LEFT", null, 4, 3);
+        private void OnPresetThirdsHalf(object sender, RoutedEventArgs e) => AddRowDef("THIRDS ½H", new[] { 1, 1 }, 1, 1, 1);
+        private void OnPreset43Left(object sender, RoutedEventArgs e)   => AddRowDef("4:3 LEFT", null, 4, 3);
+        private void OnPreset43Center(object sender, RoutedEventArgs e) => AddRowDef("4:3 CENTER", null, 3, 4, 3);
+        private void OnPreset43Right(object sender, RoutedEventArgs e)  => AddRowDef("4:3 RIGHT", null, 3, 4);
         private void OnPresetQuarters(object sender, RoutedEventArgs e) => AddRowDef("QUARTERS", null, 1, 1, 1, 1);
+        private void OnPresetQuartersHalf(object sender, RoutedEventArgs e) => AddRowDef("QUARTERS ½H", new[] { 1, 1 }, 1, 1, 1, 1);
         private void OnPresetFifths(object sender, RoutedEventArgs e)   => AddRowDef("FIFTHS", null, 1, 1, 1, 1, 1);
-        private void OnPresetTopBottom(object sender, RoutedEventArgs e) => AddRowDef("TOP / BOTTOM", new[] { 1, 1 }, 1);
-        private void OnPresetHeightThirds(object sender, RoutedEventArgs e) => AddRowDef("HEIGHT \u2153", new[] { 1, 1, 1 }, 1);
+        private void OnPresetFifthsHalf(object sender, RoutedEventArgs e) => AddRowDef("FIFTHS ½H", new[] { 1, 1 }, 1, 1, 1, 1, 1);
 
         private void OnPresetCustom(object sender, RoutedEventArgs e)
         {

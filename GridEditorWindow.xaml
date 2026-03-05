@@ -1,13 +1,13 @@
 <Window x:Class="ScreenGrid.GridEditorWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ScreenGrid – Grid Editor"
-        Width="720" Height="620"
-        MinWidth="600" MinHeight="480"
-        WindowStartupLocation="CenterScreen"
-        Background="#1e1e2e"
-        Foreground="White"
-        ResizeMode="CanResize">
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="ScreenGrid – Grid Editor"
+    Width="960" Height="760"
+    MinWidth="820" MinHeight="620"
+    WindowStartupLocation="CenterScreen"
+    Background="#1e1e2e"
+    Foreground="White"
+    ResizeMode="CanResize">
 
     <Window.Resources>
         <!-- Dark flat button style -->
@@ -51,7 +51,12 @@
     </Window.Resources>
 
     <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2.15*"/>
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -60,11 +65,11 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <TextBlock Grid.Row="0" Text="Grid Editor" FontSize="22" FontWeight="SemiBold"
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Grid Editor" FontSize="22" FontWeight="SemiBold"
                    Foreground="#ccd0ff" Margin="0,0,0,8"/>
 
         <!-- Grid name -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
             <TextBlock Text="Grid Name:" VerticalAlignment="Center" Margin="0,0,8,0"
                        FontSize="13" Foreground="#aab"/>
             <TextBox x:Name="TxtGridName" Width="260" Height="30" FontSize="13"
@@ -72,29 +77,71 @@
                      Padding="6,4" VerticalContentAlignment="Center"/>
         </StackPanel>
 
+        <!-- Usage help -->
+        <Border Grid.Row="2" Grid.Column="0" Background="#25253b" BorderBrush="#3b3b58" BorderThickness="1"
+                CornerRadius="6" Padding="10" Margin="0,0,0,10">
+            <TextBlock Foreground="#d8dcff" FontSize="12" TextWrapping="Wrap">
+                <Run Text="Quick tips: " FontWeight="SemiBold"/>
+                <Run Text="Columns (W) sets left/right widths (example: 1:1:1).  " />
+                <Run Text="Height (H) is optional vertical split (example: 1:1). Leave H empty for full-height zones.  " />
+                <Run Text="The top row appears first in the Shift overlay." />
+            </TextBlock>
+        </Border>
+
         <!-- Rows list -->
-        <Border Grid.Row="2" Background="#16162a" BorderBrush="#333355" BorderThickness="1"
+        <Border Grid.Row="3" Grid.Column="0" Background="#16162a" BorderBrush="#333355" BorderThickness="1"
                 CornerRadius="6" Padding="8" Margin="0,0,0,10">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel x:Name="RowsPanel" />
             </ScrollViewer>
         </Border>
 
+        <!-- Orientation preview -->
+        <Border Grid.Row="1" Grid.Column="1" Grid.RowSpan="4" Margin="14,0,0,10"
+                Background="#16162a" BorderBrush="#333355" BorderThickness="1"
+                CornerRadius="6" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Orientation Preview" FontSize="15" FontWeight="SemiBold"
+                           Foreground="#d8dcff"/>
+
+                <TextBlock x:Name="TxtPreviewName" Grid.Row="1" Margin="0,6,0,8"
+                           Foreground="#9ca3d7" FontSize="12"
+                           Text="Select a row to preview"/>
+
+                <Border Grid.Row="2" Background="#111124" BorderBrush="#3b3b58" BorderThickness="1" CornerRadius="6" Padding="10">
+                    <Canvas x:Name="PreviewCanvas" MinHeight="220" />
+                </Border>
+            </Grid>
+        </Border>
+
         <!-- Add row + row presets -->
-        <WrapPanel Grid.Row="3" Margin="0,0,0,14">
-            <Button Style="{StaticResource FlatBtn}" Content="＋ Add Row" Click="OnAddRow" Margin="0,0,8,4"/>
-            <Button Style="{StaticResource FlatBtn}" Content="+ Halves (1:1)" Click="OnPresetHalves" Margin="0,0,4,4"/>
-            <Button Style="{StaticResource FlatBtn}" Content="+ Thirds (1:1:1)" Click="OnPresetThirds" Margin="0,0,4,4"/>
-            <Button Style="{StaticResource FlatBtn}" Content="+ 4:3" Click="OnPreset43" Margin="0,0,4,4"/>
-            <Button Style="{StaticResource FlatBtn}" Content="+ Quarters" Click="OnPresetQuarters" Margin="0,0,4,4"/>
-            <Button Style="{StaticResource FlatBtn}" Content="+ Fifths" Click="OnPresetFifths" Margin="0,0,4,4"/>
-            <Button Style="{StaticResource FlatBtn}" Content="+ Top/Bottom" Click="OnPresetTopBottom" Margin="0,0,4,4"/>
-            <Button Style="{StaticResource FlatBtn}" Content="+ Height ⅓" Click="OnPresetHeightThirds" Margin="0,0,4,4"/>
-            <Button Style="{StaticResource FlatBtn}" Content="+ Custom…" Click="OnPresetCustom" Margin="0,0,4,4"/>
-        </WrapPanel>
+        <StackPanel Grid.Row="4" Grid.Column="0" Margin="0,0,0,14">
+            <TextBlock Text="Quick Add" FontSize="13" FontWeight="SemiBold" Foreground="#cfd3ff" Margin="0,0,0,6"/>
+            <WrapPanel>
+                <Button Style="{StaticResource FlatBtn}" Content="＋ Empty Row" Click="OnAddRow" Margin="0,0,8,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="HALVES" Click="OnPresetHalves" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="HALVES ½H" Click="OnPresetHalvesHalf" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="THIRDS" Click="OnPresetThirds" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="THIRDS ½H" Click="OnPresetThirdsHalf" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="4:3 LEFT" Click="OnPreset43Left" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="4:3 CENTER" Click="OnPreset43Center" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="4:3 RIGHT" Click="OnPreset43Right" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="QUARTERS" Click="OnPresetQuarters" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="QUARTERS ½H" Click="OnPresetQuartersHalf" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="FIFTHS" Click="OnPresetFifths" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="FIFTHS ½H" Click="OnPresetFifthsHalf" Margin="0,0,4,4"/>
+                <Button Style="{StaticResource FlatBtn}" Content="CUSTOM…" Click="OnPresetCustom" Margin="0,0,4,4"/>
+            </WrapPanel>
+        </StackPanel>
 
         <!-- Action buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Style="{StaticResource FlatBtn}" Content="Reset to Defaults" Click="OnReset" Margin="0,0,8,0"/>
             <Button Style="{StaticResource FlatBtn}" Content="Save to File…" Click="OnSaveToFile" Margin="0,0,8,0"/>
             <Button Style="{StaticResource AccentBtn}" Content="Apply &amp; Close" Click="OnApply" Margin="0,0,0,0"/>

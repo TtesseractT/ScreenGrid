@@ -199,6 +199,12 @@ namespace ScreenGrid
                 foreach (int r in rowDef.Ratios) totalParts += r;
                 if (totalParts <= 0) continue;
 
+                // Height ratios (vertical subdivision)
+                var heightRatios = rowDef.HasHeightSplit ? rowDef.HeightRatios! : new List<int> { 1 };
+                int totalHeightParts = 0;
+                foreach (int hr in heightRatios) totalHeightParts += hr;
+                int numVRows = heightRatios.Count;
+
                 int numCols = rowDef.Ratios.Count;
                 int xOffset = screenLeft;
 
@@ -208,15 +214,37 @@ namespace ScreenGrid
                     if (col == numCols - 1)
                         w = screenLeft + screenW - xOffset;
 
-                    _zones.Add(new GridZone
+                    // Vertical sub-rows within this column
+                    int snapYOffset = screenTop;
+                    for (int vRow = 0; vRow < numVRows; vRow++)
                     {
-                        DisplayBounds = new Rect(xOffset + gap, dispTop + gap, w - 2 * gap, rowH - 2 * gap),
-                        SnapBounds    = new Rect(xOffset, screenTop, w, screenH),
-                        Label         = rowDef.GetColumnLabel(col),
-                        Row           = row,
-                        Column        = col,
-                        TotalColumns  = numCols
-                    });
+                        int snapH = (int)((double)heightRatios[vRow] / totalHeightParts * screenH);
+                        if (vRow == numVRows - 1)
+                            snapH = screenTop + screenH - snapYOffset;
+
+                        int dispSubH = rowH / numVRows;
+                        int dispSubTop = dispTop + vRow * dispSubH;
+                        if (vRow == numVRows - 1)
+                            dispSubH = dispTop + rowH - dispSubTop;
+
+                        // Label: combine column label with height label
+                        string colLabel = rowDef.GetColumnLabel(col);
+                        string hLabel = rowDef.GetHeightLabel(vRow);
+                        string label = string.IsNullOrEmpty(hLabel) ? colLabel : $"{colLabel} {hLabel}";
+
+                        _zones.Add(new GridZone
+                        {
+                            DisplayBounds = new Rect(xOffset + gap, dispSubTop + gap, w - 2 * gap, dispSubH - 2 * gap),
+                            SnapBounds    = new Rect(xOffset, snapYOffset, w, snapH),
+                            Label         = label,
+                            Row           = row,
+                            Column        = col,
+                            TotalColumns  = numCols
+                        });
+
+                        snapYOffset += snapH;
+                    }
+
                     xOffset += w;
                 }
             }
@@ -359,13 +387,15 @@ namespace ScreenGrid
             }
 
             double x = (zone.SnapBounds.X - _workArea.Left) / _dpiScale;
+            double y = (zone.SnapBounds.Y - _workArea.Top)  / _dpiScale;
             double w = zone.SnapBounds.Width  / _dpiScale;
+            double h = zone.SnapBounds.Height / _dpiScale;
             double previewMargin = 6;
 
             Canvas.SetLeft(_snapPreview, x + previewMargin);
-            Canvas.SetTop(_snapPreview, previewMargin);
+            Canvas.SetTop(_snapPreview, y + previewMargin);
             _snapPreview.Width      = w - 2 * previewMargin;
-            _snapPreview.Height     = Height - 2 * previewMargin;
+            _snapPreview.Height     = h - 2 * previewMargin;
             _snapPreview.Visibility = Visibility.Visible;
 
             // Show a clear size label centered in the preview
@@ -379,7 +409,7 @@ namespace ScreenGrid
                 double labelW = _snapLabel.DesiredSize.Width;
                 double labelH = _snapLabel.DesiredSize.Height;
                 Canvas.SetLeft(_snapLabel, x + (w - labelW) / 2);
-                Canvas.SetTop(_snapLabel, (Height - labelH) / 2);
+                Canvas.SetTop(_snapLabel, y + (h - labelH) / 2);
             }
         }
 

@@ -79,5 +79,82 @@ namespace ScreenGrid.Tests
             Assert.NotNull(row.Ratios);
             Assert.Empty(row.Ratios);
         }
+
+        [Fact]
+        public void Default_HeightRatios_IsNull()
+        {
+            var row = new GridRowDef();
+            Assert.Null(row.HeightRatios);
+        }
+
+        [Fact]
+        public void HasHeightSplit_NullHeightRatios_ReturnsFalse()
+        {
+            var row = new GridRowDef { Ratios = [1, 1] };
+            Assert.False(row.HasHeightSplit);
+        }
+
+        [Fact]
+        public void HasHeightSplit_SingleHeightRatio_ReturnsFalse()
+        {
+            var row = new GridRowDef { Ratios = [1, 1], HeightRatios = [1] };
+            Assert.False(row.HasHeightSplit);
+        }
+
+        [Fact]
+        public void HasHeightSplit_TwoHeightRatios_ReturnsTrue()
+        {
+            var row = new GridRowDef { Ratios = [1, 1], HeightRatios = [1, 1] };
+            Assert.True(row.HasHeightSplit);
+        }
+
+        // ── GetHeightLabel ──────────────────────────────────────────
+
+        [Fact]
+        public void GetHeightLabel_NullHeightRatios_ReturnsEmpty()
+        {
+            var row = new GridRowDef { Ratios = [1, 1] };
+            Assert.Equal(string.Empty, row.GetHeightLabel(0));
+        }
+
+        [Fact]
+        public void GetHeightLabel_SingleHeightRatio_ReturnsEmpty()
+        {
+            var row = new GridRowDef { Ratios = [1, 1], HeightRatios = [1] };
+            Assert.Equal(string.Empty, row.GetHeightLabel(0));
+        }
+
+        [Fact]
+        public void GetHeightLabel_TwoEqual_ReturnsTopBot()
+        {
+            var row = new GridRowDef { Ratios = [1], HeightRatios = [1, 1] };
+            Assert.Equal("Top", row.GetHeightLabel(0));
+            Assert.Equal("Bot", row.GetHeightLabel(1));
+        }
+
+        [Fact]
+        public void GetHeightLabel_ThreeEqual_ReturnsTopMidBot()
+        {
+            var row = new GridRowDef { Ratios = [1], HeightRatios = [1, 1, 1] };
+            Assert.Equal("Top", row.GetHeightLabel(0));
+            Assert.Equal("Mid", row.GetHeightLabel(1));
+            Assert.Equal("Bot", row.GetHeightLabel(2));
+        }
+
+        [Fact]
+        public void GetHeightLabel_FourEqual_ReturnsVFormat()
+        {
+            var row = new GridRowDef { Ratios = [1], HeightRatios = [1, 1, 1, 1] };
+            Assert.Equal("V1/4", row.GetHeightLabel(0));
+            Assert.Equal("V4/4", row.GetHeightLabel(3));
+        }
+
+        [Fact]
+        public void GetHeightLabel_UnequalRatios_ReturnsValues()
+        {
+            var row = new GridRowDef { Ratios = [1], HeightRatios = [2, 1] };
+            Assert.Equal("2", row.GetHeightLabel(0));
+            Assert.Equal("1", row.GetHeightLabel(1));
+        }
     }
 }

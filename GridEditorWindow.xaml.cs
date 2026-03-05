@@ -85,18 +85,19 @@ namespace ScreenGrid
                 var ratiosPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
                 var lblRatios = new TextBlock
                 {
-                    Text              = "Ratios:",
+                    Text              = "W:",
                     Foreground        = new SolidColorBrush(Color.FromArgb(255, 160, 160, 200)),
                     FontSize          = 12,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin            = new Thickness(0, 0, 6, 0)
+                    Margin            = new Thickness(0, 0, 4, 0),
+                    ToolTip           = "Width ratios (columns)"
                 };
                 ratiosPanel.Children.Add(lblRatios);
 
                 var txtRatios = new TextBox
                 {
                     Text         = string.Join(" : ", row.Ratios),
-                    Width        = 160,
+                    Width        = 110,
                     Height       = 28,
                     FontSize     = 13,
                     Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
@@ -108,6 +109,34 @@ namespace ScreenGrid
                 };
                 txtRatios.LostFocus += (_, _) => ParseRatios(txtRatios, row);
                 ratiosPanel.Children.Add(txtRatios);
+
+                // Height ratios edit
+                var lblHeight = new TextBlock
+                {
+                    Text              = "H:",
+                    Foreground        = new SolidColorBrush(Color.FromArgb(255, 160, 160, 200)),
+                    FontSize          = 12,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin            = new Thickness(10, 0, 4, 0),
+                    ToolTip           = "Height ratios (vertical split, leave empty for full height)"
+                };
+                ratiosPanel.Children.Add(lblHeight);
+
+                var txtHeight = new TextBox
+                {
+                    Text         = row.HasHeightSplit ? string.Join(" : ", row.HeightRatios!) : "",
+                    Width        = 80,
+                    Height       = 28,
+                    FontSize     = 13,
+                    Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
+                    Foreground   = Brushes.White,
+                    BorderBrush  = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102)),
+                    Padding      = new Thickness(5, 3, 5, 3),
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    ToolTip      = "Height ratios separated by : (e.g. 1:1 for top/bottom, empty = full height)"
+                };
+                txtHeight.LostFocus += (_, _) => ParseHeightRatios(txtHeight, row);
+                ratiosPanel.Children.Add(txtHeight);
 
                 Grid.SetColumn(ratiosPanel, 2);
                 grid.Children.Add(ratiosPanel);
@@ -206,20 +235,61 @@ namespace ScreenGrid
             }
         }
 
+        private static void ParseHeightRatios(TextBox txt, GridRowDef row)
+        {
+            var text = txt.Text.Trim();
+            if (string.IsNullOrEmpty(text))
+            {
+                row.HeightRatios = null;
+                txt.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+                return;
+            }
+
+            var parts = text
+                .Replace(",", ":")
+                .Replace(" ", "")
+                .Split(':', StringSplitOptions.RemoveEmptyEntries);
+
+            var parsed = new List<int>();
+            foreach (var p in parts)
+            {
+                if (int.TryParse(p, out int v) && v > 0)
+                    parsed.Add(v);
+            }
+
+            if (parsed.Count >= 1)
+            {
+                row.HeightRatios = parsed.Count == 1 ? null : parsed;
+                txt.Text = parsed.Count == 1 ? "" : string.Join(" : ", parsed);
+                txt.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+            }
+            else
+            {
+                txt.BorderBrush = Brushes.Red;
+            }
+        }
+
         // ── Preset buttons ──────────────────────────────────────────────
 
-        private void AddRowDef(string name, params int[] ratios)
+        private void AddRowDef(string name, int[]? heightRatios, params int[] ratios)
         {
-            _config.Rows.Add(new GridRowDef { Name = name, Ratios = ratios.ToList() });
+            _config.Rows.Add(new GridRowDef
+            {
+                Name = name,
+                Ratios = ratios.ToList(),
+                HeightRatios = heightRatios?.ToList()
+            });
             RebuildRowsUI();
         }
 
-        private void OnAddRow(object sender, RoutedEventArgs e)     => AddRowDef("Custom", 1, 1);
-        private void OnPresetHalves(object sender, RoutedEventArgs e)   => AddRowDef("HALVES", 1, 1);
-        private void OnPresetThirds(object sender, RoutedEventArgs e)   => AddRowDef("THIRDS", 1, 1, 1);
-        private void OnPreset43(object sender, RoutedEventArgs e)       => AddRowDef("4 : 3", 4, 3);
-        private void OnPresetQuarters(object sender, RoutedEventArgs e) => AddRowDef("QUARTERS", 1, 1, 1, 1);
-        private void OnPresetFifths(object sender, RoutedEventArgs e)   => AddRowDef("FIFTHS", 1, 1, 1, 1, 1);
+        private void OnAddRow(object sender, RoutedEventArgs e)     => AddRowDef("Custom", null, 1, 1);
+        private void OnPresetHalves(object sender, RoutedEventArgs e)   => AddRowDef("HALVES", null, 1, 1);
+        private void OnPresetThirds(object sender, RoutedEventArgs e)   => AddRowDef("THIRDS", null, 1, 1, 1);
+        private void OnPreset43(object sender, RoutedEventArgs e)       => AddRowDef("4:3 LEFT", null, 4, 3);
+        private void OnPresetQuarters(object sender, RoutedEventArgs e) => AddRowDef("QUARTERS", null, 1, 1, 1, 1);
+        private void OnPresetFifths(object sender, RoutedEventArgs e)   => AddRowDef("FIFTHS", null, 1, 1, 1, 1, 1);
+        private void OnPresetTopBottom(object sender, RoutedEventArgs e) => AddRowDef("TOP / BOTTOM", new[] { 1, 1 }, 1);
+        private void OnPresetHeightThirds(object sender, RoutedEventArgs e) => AddRowDef("HEIGHT \u2153", new[] { 1, 1, 1 }, 1);
 
         private void OnPresetCustom(object sender, RoutedEventArgs e)
         {
@@ -289,7 +359,12 @@ namespace ScreenGrid
         {
             var clone = new GridConfig { Name = src.Name };
             foreach (var row in src.Rows)
-                clone.Rows.Add(new GridRowDef { Name = row.Name, Ratios = new List<int>(row.Ratios) });
+                clone.Rows.Add(new GridRowDef
+                {
+                    Name = row.Name,
+                    Ratios = new List<int>(row.Ratios),
+                    HeightRatios = row.HeightRatios != null ? new List<int>(row.HeightRatios) : null
+                });
             return clone;
         }
 

@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-blue?logo=windows" alt="Platform">
   <img src="https://img.shields.io/badge/.NET-9.0-purple?logo=dotnet" alt=".NET 9">
-  <img src="https://img.shields.io/github/license/YOUR_USERNAME/ScreenGrid" alt="License">
+  <img src="https://img.shields.io/github/license/TtesseractT/ScreenGrid" alt="License">
 </p>
 
 # ScreenGrid
@@ -14,11 +14,24 @@ Built for displays like 5120×1440 where Windows' built-in snap (halves/quarters
 <!-- Replace with an actual screenshot once you have one -->
 
 ---
+## ⬇️ Download
 
+> **[Download the latest release](https://github.com/TtesseractT/ScreenGrid/releases/latest)** — no build tools needed, just run the `.exe`.
+
+| File | Size | Requires .NET? |
+|------|------|----------------|
+| **ScreenGrid-standalone.exe** | ~70 MB | No — runs anywhere |
+| **ScreenGrid-small.exe** | ~200 KB | Yes — needs [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) |
+
+Both are single-file executables. Download, run, and it appears in your system tray.
+
+---
 ## Features
 
 - **Shift + Drag** to activate — zero interference with normal window management
 - **5 built-in grid rows**: Halves, Thirds, 4:3, Quarters, Fifths
+- **3 × 4:3 variants**: left, center, and right positions
+- **Height splits**: top/bottom halves and height thirds for partial-height zones
 - **Custom grids** — create any ratio (2:1, 3:2:1, 16:9, etc.) via the built-in editor
 - **Save / Load** grid layouts as `.screengrid` JSON files
 - **Full-height snap preview** with pixel dimensions shown on hover
@@ -33,14 +46,14 @@ Built for displays like 5120×1440 where Windows' built-in snap (halves/quarters
 
 ### Option 1: Download a Release
 
-> Download the latest `.exe` from [**Releases**](https://github.com/YOUR_USERNAME/ScreenGrid/releases) and run it. It sits in your system tray.
+> **[⬇️ Download the latest release](https://github.com/TtesseractT/ScreenGrid/releases/latest)** and run the `.exe`. It sits in your system tray.
 
 ### Option 2: Build from Source
 
 **Prerequisites:** [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0), Windows 10+
 
 ```powershell
-git clone https://github.com/YOUR_USERNAME/ScreenGrid.git
+git clone https://github.com/TtesseractT/ScreenGrid.git
 cd ScreenGrid
 dotnet run -c Release
 ```
@@ -109,10 +122,10 @@ Grid configs are stored as simple JSON:
 │  │    1/3       │ │    2/3       │ │    3/3       │         │
 │  └──────────────┘ └──────────────┘ └──────────────┘         │
 ├──────────────────────────────────────────────────────────────┤
-│  4:3                                                         │
-│  ┌───────────────────┐ ┌──────────────┐                     │
-│  │    4 (2926px)     │ │  3 (2194px)  │                     │
-│  └───────────────────┘ └──────────────┘                     │
+│  4:3 LEFT        4:3 CENTER        4:3 RIGHT                  │
+│  ┌─────────┐┌────┐  ┌───┐┌────────┐┌───┐  ┌────┐┌─────────┐       │
+│  │   4     ││  3 │  │ 3 ││   4    ││ 3 │  │  3 ││    4    │       │
+│  └─────────┘└────┘  └───┘└────────┘└───┘  └────┘└─────────┘       │
 ├──────────────────────────────────────────────────────────────┤
 │  QUARTERS                                                    │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
@@ -123,10 +136,27 @@ Grid configs are stored as simple JSON:
 │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐   │
 │  │  1/5   │ │  2/5   │ │  3/5   │ │  4/5   │ │  5/5   │   │
 │  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘   │
+├──────────────────────────────────────────────────────────────┤
+│  TOP / BOTTOM  (full width, snaps to half the screen height)  │
+│  ┌────────────────────────────────────────────────┐       │
+│  │          1/1 Top  (5120 × 720)                  │       │
+│  ├────────────────────────────────────────────────┤       │
+│  │          1/1 Bot  (5120 × 720)                  │       │
+│  └────────────────────────────────────────────────┘       │
+├──────────────────────────────────────────────────────────────┤
+│  HEIGHT ⅓  (full width, snaps to ⅓ screen height)             │
+│  ┌────────────────────────────────────────────────┐       │
+│  │          1/1 Top  (5120 × 480)                  │       │
+│  ├────────────────────────────────────────────────┤       │
+│  │          1/1 Mid  (5120 × 480)                  │       │
+│  ├────────────────────────────────────────────────┤       │
+│  │          1/1 Bot  (5120 × 480)                  │       │
+│  └────────────────────────────────────────────────┘       │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-All zones snap windows to the **full height** of the work area.
+Full-height rows snap windows to the **full height** of the work area.
+Height-split rows (Top/Bottom, Height ⅓) snap windows to **partial height**.
 
 ---
 
@@ -160,12 +190,13 @@ dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true 
 ScreenGrid/
 ├── App.xaml.cs                 # Entry point, tray icon, WinEvent hook, drag tracking
 ├── OverlayWindow.xaml.cs       # Full-screen transparent overlay, grid rendering
-├── GridEditorWindow.xaml.cs    # Grid editor UI (add/remove/reorder rows)
+├── GridEditorWindow.xaml.cs    # Grid editor UI (add/remove/reorder rows, height ratios)
 ├── CustomRatioDialog.xaml.cs   # Dialog for entering custom ratios
 ├── GridConfig.cs               # Grid layout model, JSON serialization
 ├── GridZone.cs                 # Individual snap zone model
 ├── NativeMethods.cs            # Win32 P/Invoke declarations
-└── ScreenGrid.csproj           # .NET 9 WPF project
+├── ScreenGrid.csproj           # .NET 9 WPF project
+└── tests/                      # xUnit test suite (54 tests)
 ```
 
 **Key Win32 APIs:**

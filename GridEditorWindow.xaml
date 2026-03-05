@@ -88,6 +88,8 @@
             <Button Style="{StaticResource FlatBtn}" Content="+ 4:3" Click="OnPreset43" Margin="0,0,4,4"/>
             <Button Style="{StaticResource FlatBtn}" Content="+ Quarters" Click="OnPresetQuarters" Margin="0,0,4,4"/>
             <Button Style="{StaticResource FlatBtn}" Content="+ Fifths" Click="OnPresetFifths" Margin="0,0,4,4"/>
+            <Button Style="{StaticResource FlatBtn}" Content="+ Top/Bottom" Click="OnPresetTopBottom" Margin="0,0,4,4"/>
+            <Button Style="{StaticResource FlatBtn}" Content="+ Height ⅓" Click="OnPresetHeightThirds" Margin="0,0,4,4"/>
             <Button Style="{StaticResource FlatBtn}" Content="+ Custom…" Click="OnPresetCustom" Margin="0,0,4,4"/>
         </WrapPanel>
 

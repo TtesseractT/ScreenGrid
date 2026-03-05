@@ -21,6 +21,17 @@ namespace ScreenGrid
         /// </summary>
         public List<int> Ratios { get; set; } = new();
 
+        /// <summary>
+        /// Height ratios for vertical subdivision within each column.
+        /// Null or single entry = full screen height (default).
+        /// E.g. [1,1] = top/bottom halves, [1,1,1] = top/mid/bottom thirds.
+        /// </summary>
+        public List<int>? HeightRatios { get; set; }
+
+        /// <summary>Whether this row has vertical subdivisions.</summary>
+        [JsonIgnore]
+        public bool HasHeightSplit => HeightRatios != null && HeightRatios.Count > 1;
+
         /// <summary>Creates the display label for a column (e.g. "1/3" or "4").</summary>
         public string GetColumnLabel(int colIndex)
         {
@@ -33,6 +44,28 @@ namespace ScreenGrid
                 return $"{colIndex + 1}/{Ratios.Count}";
 
             return Ratios[colIndex].ToString();
+        }
+
+        /// <summary>Creates the display label for a vertical sub-row (e.g. "Top", "Mid", "Bot").</summary>
+        public string GetHeightLabel(int vRowIndex)
+        {
+            if (HeightRatios == null || HeightRatios.Count <= 1)
+                return string.Empty;
+
+            bool allEqual = true;
+            for (int i = 1; i < HeightRatios.Count; i++)
+                if (HeightRatios[i] != HeightRatios[0]) { allEqual = false; break; }
+
+            if (allEqual)
+            {
+                if (HeightRatios.Count == 2)
+                    return vRowIndex == 0 ? "Top" : "Bot";
+                if (HeightRatios.Count == 3)
+                    return vRowIndex == 0 ? "Top" : vRowIndex == 1 ? "Mid" : "Bot";
+                return $"V{vRowIndex + 1}/{HeightRatios.Count}";
+            }
+
+            return HeightRatios[vRowIndex].ToString();
         }
     }
 
@@ -85,11 +118,15 @@ namespace ScreenGrid
                 Name = "Default",
                 Rows = new List<GridRowDef>
                 {
-                    new() { Name = "HALVES",   Ratios = new List<int> { 1, 1 } },
-                    new() { Name = "THIRDS",   Ratios = new List<int> { 1, 1, 1 } },
-                    new() { Name = "4 : 3",    Ratios = new List<int> { 4, 3 } },
-                    new() { Name = "QUARTERS", Ratios = new List<int> { 1, 1, 1, 1 } },
-                    new() { Name = "FIFTHS",   Ratios = new List<int> { 1, 1, 1, 1, 1 } },
+                    new() { Name = "HALVES",      Ratios = new List<int> { 1, 1 } },
+                    new() { Name = "THIRDS",      Ratios = new List<int> { 1, 1, 1 } },
+                    new() { Name = "4:3 LEFT",    Ratios = new List<int> { 4, 3 } },
+                    new() { Name = "4:3 CENTER",  Ratios = new List<int> { 3, 4, 3 } },
+                    new() { Name = "4:3 RIGHT",   Ratios = new List<int> { 3, 4 } },
+                    new() { Name = "QUARTERS",    Ratios = new List<int> { 1, 1, 1, 1 } },
+                    new() { Name = "FIFTHS",      Ratios = new List<int> { 1, 1, 1, 1, 1 } },
+                    new() { Name = "TOP / BOTTOM", Ratios = new List<int> { 1 },       HeightRatios = new List<int> { 1, 1 } },
+                    new() { Name = "HEIGHT ⅓",    Ratios = new List<int> { 1 },       HeightRatios = new List<int> { 1, 1, 1 } },
                 }
             };
         }

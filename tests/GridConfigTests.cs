@@ -37,10 +37,10 @@ namespace ScreenGrid.Tests
         }
 
         [Fact]
-        public void CreateDefault_HasFiveRows()
+        public void CreateDefault_HasNineRows()
         {
             var config = GridConfig.CreateDefault();
-            Assert.Equal(5, config.Rows.Count);
+            Assert.Equal(9, config.Rows.Count);
         }
 
         [Fact]
@@ -52,9 +52,12 @@ namespace ScreenGrid.Tests
 
             Assert.Contains("HALVES", names);
             Assert.Contains("THIRDS", names);
-            Assert.Contains("4 : 3", names);
+            Assert.Contains("4:3 LEFT", names);
+            Assert.Contains("4:3 CENTER", names);
+            Assert.Contains("4:3 RIGHT", names);
             Assert.Contains("QUARTERS", names);
             Assert.Contains("FIFTHS", names);
+            Assert.Contains("TOP / BOTTOM", names);
         }
 
         [Fact]
@@ -76,19 +79,37 @@ namespace ScreenGrid.Tests
         }
 
         [Fact]
-        public void CreateDefault_FourThreeRow_HasCorrectRatios()
+        public void CreateDefault_FourThreeLeft_HasCorrectRatios()
         {
             var config = GridConfig.CreateDefault();
-            var row43 = config.Rows[2];
-            Assert.Equal("4 : 3", row43.Name);
-            Assert.Equal(new List<int> { 4, 3 }, row43.Ratios);
+            var row = config.Rows[2];
+            Assert.Equal("4:3 LEFT", row.Name);
+            Assert.Equal(new List<int> { 4, 3 }, row.Ratios);
+        }
+
+        [Fact]
+        public void CreateDefault_FourThreeCenter_HasCorrectRatios()
+        {
+            var config = GridConfig.CreateDefault();
+            var row = config.Rows[3];
+            Assert.Equal("4:3 CENTER", row.Name);
+            Assert.Equal(new List<int> { 3, 4, 3 }, row.Ratios);
+        }
+
+        [Fact]
+        public void CreateDefault_FourThreeRight_HasCorrectRatios()
+        {
+            var config = GridConfig.CreateDefault();
+            var row = config.Rows[4];
+            Assert.Equal("4:3 RIGHT", row.Name);
+            Assert.Equal(new List<int> { 3, 4 }, row.Ratios);
         }
 
         [Fact]
         public void CreateDefault_QuartersRow_HasFourEqualRatios()
         {
             var config = GridConfig.CreateDefault();
-            var quarters = config.Rows[3];
+            var quarters = config.Rows[5];
             Assert.Equal("QUARTERS", quarters.Name);
             Assert.Equal(new List<int> { 1, 1, 1, 1 }, quarters.Ratios);
         }
@@ -97,9 +118,30 @@ namespace ScreenGrid.Tests
         public void CreateDefault_FifthsRow_HasFiveEqualRatios()
         {
             var config = GridConfig.CreateDefault();
-            var fifths = config.Rows[4];
+            var fifths = config.Rows[6];
             Assert.Equal("FIFTHS", fifths.Name);
             Assert.Equal(new List<int> { 1, 1, 1, 1, 1 }, fifths.Ratios);
+        }
+
+        [Fact]
+        public void CreateDefault_TopBottom_HasHeightRatios()
+        {
+            var config = GridConfig.CreateDefault();
+            var topBot = config.Rows[7];
+            Assert.Equal("TOP / BOTTOM", topBot.Name);
+            Assert.Equal(new List<int> { 1 }, topBot.Ratios);
+            Assert.NotNull(topBot.HeightRatios);
+            Assert.Equal(new List<int> { 1, 1 }, topBot.HeightRatios);
+            Assert.True(topBot.HasHeightSplit);
+        }
+
+        [Fact]
+        public void CreateDefault_HeightThirds_HasHeightRatios()
+        {
+            var config = GridConfig.CreateDefault();
+            var hThirds = config.Rows[8];
+            Assert.NotNull(hThirds.HeightRatios);
+            Assert.Equal(new List<int> { 1, 1, 1 }, hThirds.HeightRatios);
         }
 
         // ── Save / Load roundtrip ───────────────────────────────────
@@ -166,6 +208,25 @@ namespace ScreenGrid.Tests
             var loaded = GridConfig.LoadFromFile(path);
             Assert.Equal("Empty", loaded.Name);
             Assert.Empty(loaded.Rows);
+        }
+
+        [Fact]
+        public void SaveAndLoad_HeightRatios_RoundTrips()
+        {
+            var config = new GridConfig { Name = "Height Test" };
+            config.Rows.Add(new GridRowDef { Name = "TB", Ratios = [1], HeightRatios = [1, 1] });
+            config.Rows.Add(new GridRowDef { Name = "Full", Ratios = [1, 1] }); // no height ratios
+
+            string path = Path.Combine(_tempDir, "height.screengrid");
+            config.SaveToFile(path);
+
+            var loaded = GridConfig.LoadFromFile(path);
+            Assert.Equal(2, loaded.Rows.Count);
+            Assert.NotNull(loaded.Rows[0].HeightRatios);
+            Assert.Equal(new List<int> { 1, 1 }, loaded.Rows[0].HeightRatios);
+            Assert.True(loaded.Rows[0].HasHeightSplit);
+            Assert.Null(loaded.Rows[1].HeightRatios);
+            Assert.False(loaded.Rows[1].HasHeightSplit);
         }
 
         [Fact]

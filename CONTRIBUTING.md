@@ -13,9 +13,32 @@ Thanks for your interest in contributing! Here's how to get started.
 1. **Fork** the repository
 2. Create a **feature branch** from `main`: `git checkout -b my-feature`
 3. Make your changes
-4. **Test** by running the app and verifying the overlay, grid editor, and snapping work
-5. **Commit** with a clear message describing the change
-6. **Push** and open a **Pull Request**
+4. **Run tests**: `dotnet test -c Release` — all tests must pass
+5. **Test manually** by running the app and verifying the overlay, grid editor, and snapping work
+6. **Commit** with a clear message describing the change
+7. **Push** and open a **Pull Request**
+
+## Running Tests
+
+The test suite uses [xUnit](https://xunit.net/) and lives in the `tests/` directory.
+
+```bash
+# Run all tests
+dotnet test -c Release
+
+# Run tests with detailed output
+dotnet test -c Release --verbosity normal
+
+# Run a specific test class
+dotnet test -c Release --filter "FullyQualifiedName~GridConfigTests"
+```
+
+Tests cover:
+- **GridRowDef** — column label generation for various ratio configurations
+- **GridConfig** — default creation, JSON save/load roundtrip, error handling, constants
+- **GridZone** — default property values, zone bounds for common screen splits
+
+When adding new features, please include corresponding tests. CI runs `dotnet test` automatically on every push and pull request.
 
 ## What to Contribute
 

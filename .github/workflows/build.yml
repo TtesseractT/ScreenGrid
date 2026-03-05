@@ -3,11 +3,12 @@ name: Build
 on:
   push:
     branches: [ main ]
+    tags: [ 'Beta.*', 'v*' ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: windows-latest
 
     steps:
@@ -23,6 +24,9 @@ jobs:
 
     - name: Build
       run: dotnet build -c Release --no-restore
+
+    - name: Test
+      run: dotnet test -c Release --no-build --verbosity normal
 
     - name: Publish (framework-dependent)
       run: dotnet publish -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=false -o ./artifacts/framework-dependent
@@ -42,9 +46,10 @@ jobs:
         name: ScreenGrid-self-contained
         path: artifacts/self-contained/ScreenGrid.exe
 
-  release:
+  # Rolling pre-release on every push to main
+  latest-release:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: build
+    needs: build-and-test
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -82,3 +87,54 @@ jobs:
           ScreenGrid-standalone.exe
         prerelease: true
         make_latest: true
+
+  # Versioned release on tag push (e.g. Beta.1.0, v1.0.0)
+  versioned-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: ScreenGrid-framework-dependent
+        path: ./framework-dependent
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: ScreenGrid-self-contained
+        path: ./self-contained
+
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Rename artifacts
+      run: |
+        mv ./framework-dependent/ScreenGrid.exe ./ScreenGrid-small.exe
+        mv ./self-contained/ScreenGrid.exe ./ScreenGrid-standalone.exe
+
+    - name: Create versioned release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: ScreenGrid ${{ steps.version.outputs.VERSION }}
+        body: |
+          ## ScreenGrid ${{ steps.version.outputs.VERSION }}
+
+          ### Downloads
+
+          | File | Size | Requires .NET? |
+          |------|------|----------------|
+          | `ScreenGrid-small.exe` | ~200 KB | Yes (.NET 9 Desktop Runtime) |
+          | `ScreenGrid-standalone.exe` | ~70 MB | No |
+
+          ### What's New
+          See the [commit history](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}) for changes.
+        files: |
+          ScreenGrid-small.exe
+          ScreenGrid-standalone.exe
+        prerelease: ${{ startsWith(github.ref_name, 'Beta') }}
+        make_latest: ${{ !startsWith(github.ref_name, 'Beta') }}

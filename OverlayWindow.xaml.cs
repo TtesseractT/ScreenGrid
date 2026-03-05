@@ -42,15 +42,14 @@ namespace ScreenGrid
         private void UpdateColorsFromAppearance()
         {
             var a = _gridConfig.Appearance;
-            var (r, g, b) = a.AccentRgb;
 
             _overlayBg        = Color.FromArgb((byte)Math.Clamp(a.OverlayAlpha, 0, 255), 10, 10, 15);
-            _zoneFill         = Color.FromArgb((byte)Math.Clamp(a.ZoneFillAlpha, 0, 255), 255, 255, 255);
-            _zoneBorder       = Color.FromArgb((byte)Math.Clamp(a.ZoneBorderAlpha, 0, 255), 255, 255, 255);
-            _highlightFill    = Color.FromArgb((byte)Math.Clamp(a.HighlightFillAlpha, 0, 255), r, g, b);
-            _highlightBorder  = Color.FromArgb((byte)Math.Clamp(a.HighlightBorderAlpha, 0, 255), r, g, b);
-            _snapPreviewFill  = Color.FromArgb((byte)Math.Clamp(a.SnapPreviewFillAlpha, 0, 255), r, g, b);
-            _snapPreviewStroke = Color.FromArgb((byte)Math.Clamp(a.SnapPreviewBorderAlpha, 0, 255), r, g, b);
+            _zoneFill         = Color.FromArgb((byte)Math.Clamp(a.ZoneFillAlpha, 0, 255), a.ZoneR, a.ZoneG, a.ZoneB);
+            _zoneBorder       = Color.FromArgb((byte)Math.Clamp(a.ZoneBorderAlpha, 0, 255), a.ZoneR, a.ZoneG, a.ZoneB);
+            _highlightFill    = Color.FromArgb((byte)Math.Clamp(a.HighlightFillAlpha, 0, 255), a.HighlightR, a.HighlightG, a.HighlightB);
+            _highlightBorder  = Color.FromArgb((byte)Math.Clamp(a.HighlightBorderAlpha, 0, 255), a.HighlightR, a.HighlightG, a.HighlightB);
+            _snapPreviewFill  = Color.FromArgb((byte)Math.Clamp(a.SnapPreviewFillAlpha, 0, 255), a.SnapPreviewR, a.SnapPreviewG, a.SnapPreviewB);
+            _snapPreviewStroke = Color.FromArgb((byte)Math.Clamp(a.SnapPreviewBorderAlpha, 0, 255), a.SnapPreviewR, a.SnapPreviewG, a.SnapPreviewB);
         }
 
         // Snap preview label

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -34,43 +33,73 @@ namespace ScreenGrid
         {
             _suppressSliderEvents = true;
             var a = _config.Appearance;
-            TxtAccentColor.Text = a.AccentColor;
+
             SliderOverlayAlpha.Value = a.OverlayAlpha;
+
+            // Zone
+            SliderZoneR.Value = a.ZoneR;
+            SliderZoneG.Value = a.ZoneG;
+            SliderZoneB.Value = a.ZoneB;
+
+            // Highlight
+            SliderHighlightR.Value = a.HighlightR;
+            SliderHighlightG.Value = a.HighlightG;
+            SliderHighlightB.Value = a.HighlightB;
             SliderHighlightAlpha.Value = a.HighlightFillAlpha;
+
+            // Snap Preview
+            SliderSnapR.Value = a.SnapPreviewR;
+            SliderSnapG.Value = a.SnapPreviewG;
+            SliderSnapB.Value = a.SnapPreviewB;
             SliderSnapAlpha.Value = a.SnapPreviewFillAlpha;
+
             _suppressSliderEvents = false;
+            UpdateSwatches();
         }
 
-        private void OnSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void OnColorSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (_suppressSliderEvents) return;
 
-            _config.Appearance.OverlayAlpha = (int)SliderOverlayAlpha.Value;
-            _config.Appearance.HighlightFillAlpha = (int)SliderHighlightAlpha.Value;
-            _config.Appearance.HighlightBorderAlpha = Math.Min(255, (int)SliderHighlightAlpha.Value + 145);
-            _config.Appearance.SnapPreviewFillAlpha = (int)SliderSnapAlpha.Value;
-            _config.Appearance.SnapPreviewBorderAlpha = Math.Min(255, (int)SliderSnapAlpha.Value + 120);
+            var a = _config.Appearance;
+            a.OverlayAlpha = (int)SliderOverlayAlpha.Value;
+
+            a.ZoneR = (byte)SliderZoneR.Value;
+            a.ZoneG = (byte)SliderZoneG.Value;
+            a.ZoneB = (byte)SliderZoneB.Value;
+
+            a.HighlightR = (byte)SliderHighlightR.Value;
+            a.HighlightG = (byte)SliderHighlightG.Value;
+            a.HighlightB = (byte)SliderHighlightB.Value;
+            a.HighlightFillAlpha = (int)SliderHighlightAlpha.Value;
+            a.HighlightBorderAlpha = Math.Min(255, (int)SliderHighlightAlpha.Value + 145);
+
+            a.SnapPreviewR = (byte)SliderSnapR.Value;
+            a.SnapPreviewG = (byte)SliderSnapG.Value;
+            a.SnapPreviewB = (byte)SliderSnapB.Value;
+            a.SnapPreviewFillAlpha = (int)SliderSnapAlpha.Value;
+            a.SnapPreviewBorderAlpha = Math.Min(255, (int)SliderSnapAlpha.Value + 120);
+
+            UpdateSwatches();
+            RenderOrientationPreview();
         }
 
-        private void OnAppearanceChanged(object sender, RoutedEventArgs e)
+        private void UpdateSwatches()
         {
-            string hex = TxtAccentColor.Text.Trim();
-            if (!hex.StartsWith('#')) hex = "#" + hex;
-            if (System.Text.RegularExpressions.Regex.IsMatch(hex, "^#[0-9A-Fa-f]{6}$"))
-            {
-                _config.Appearance.AccentColor = hex;
-                TxtAccentColor.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
-            }
-            else
-            {
-                TxtAccentColor.BorderBrush = Brushes.Red;
-            }
+            var a = _config.Appearance;
+            if (SwatchZone != null)
+                SwatchZone.Fill = new SolidColorBrush(Color.FromRgb(a.ZoneR, a.ZoneG, a.ZoneB));
+            if (SwatchHighlight != null)
+                SwatchHighlight.Fill = new SolidColorBrush(Color.FromRgb(a.HighlightR, a.HighlightG, a.HighlightB));
+            if (SwatchSnap != null)
+                SwatchSnap.Fill = new SolidColorBrush(Color.FromRgb(a.SnapPreviewR, a.SnapPreviewG, a.SnapPreviewB));
         }
 
         private void OnResetAppearance(object sender, RoutedEventArgs e)
         {
             _config.Appearance = new OverlayAppearance();
             InitAppearanceControls();
+            RenderOrientationPreview();
         }
 
         // ── Row panel rendering ─────────────────────────────────────────
@@ -382,7 +411,8 @@ namespace ScreenGrid
                 Height = height,
                 BorderBrush = new SolidColorBrush(Color.FromArgb(130, 255, 255, 255)),
                 BorderThickness = new Thickness(1),
-                Background = new SolidColorBrush(Color.FromArgb(35, 255, 255, 255)),
+                Background = new SolidColorBrush(Color.FromArgb(
+                    (byte)Math.Clamp(_config.Appearance.OverlayAlpha * 0.7, 20, 240), 10, 10, 15)),
                 CornerRadius = new CornerRadius(4)
             };
             Canvas.SetLeft(frame, 2);
@@ -393,16 +423,24 @@ namespace ScreenGrid
             int totalCols = Math.Max(1, row.Ratios.Sum());
             int totalHeights = Math.Max(1, heights.Sum());
 
-            var palette = new[]
-            {
-                Color.FromArgb(210, 80, 160, 255),
-                Color.FromArgb(210, 86, 201, 156),
-                Color.FromArgb(210, 245, 166, 35),
-                Color.FromArgb(210, 190, 120, 255),
-                Color.FromArgb(210, 244, 98, 146),
-                Color.FromArgb(210, 96, 190, 255)
-            };
+            // Use appearance colors for live preview
+            var a = _config.Appearance;
+            var zoneFillColor = Color.FromArgb(60, a.ZoneR, a.ZoneG, a.ZoneB);
+            var zoneBorderColor = Color.FromArgb(100, a.ZoneR, a.ZoneG, a.ZoneB);
+            var highlightFillColor = Color.FromArgb(
+                (byte)Math.Clamp(a.HighlightFillAlpha + 60, 0, 255),
+                a.HighlightR, a.HighlightG, a.HighlightB);
+            var highlightBorderColor = Color.FromArgb(220, a.HighlightR, a.HighlightG, a.HighlightB);
+            var snapFillColor = Color.FromArgb(
+                (byte)Math.Clamp(a.SnapPreviewFillAlpha + 40, 0, 255),
+                a.SnapPreviewR, a.SnapPreviewG, a.SnapPreviewB);
+            var snapBorderColor = Color.FromArgb(220, a.SnapPreviewR, a.SnapPreviewG, a.SnapPreviewB);
 
+            int totalZones = row.Ratios.Count * heights.Count;
+            int highlightIdx = 0; // first zone = highlighted
+            int snapIdx = totalZones > 1 ? 1 : -1; // second zone = snap preview
+
+            int zoneCounter = 0;
             double x = 2 + pad;
             for (int c = 0; c < row.Ratios.Count; c++)
             {
@@ -411,20 +449,56 @@ namespace ScreenGrid
                 for (int r = 0; r < heights.Count; r++)
                 {
                     double cellH = (height - pad * 2) * heights[r] / totalHeights;
+
+                    Color fill, stroke;
+                    if (zoneCounter == highlightIdx)
+                    {
+                        fill = highlightFillColor;
+                        stroke = highlightBorderColor;
+                    }
+                    else if (zoneCounter == snapIdx)
+                    {
+                        fill = snapFillColor;
+                        stroke = snapBorderColor;
+                    }
+                    else
+                    {
+                        fill = zoneFillColor;
+                        stroke = zoneBorderColor;
+                    }
+
                     var rect = new Rectangle
                     {
                         Width = Math.Max(8, colW - 2),
                         Height = Math.Max(8, cellH - 2),
                         RadiusX = 3,
                         RadiusY = 3,
-                        Fill = new SolidColorBrush(palette[(c + r) % palette.Length]),
-                        Stroke = new SolidColorBrush(Color.FromArgb(140, 15, 15, 30)),
+                        Fill = new SolidColorBrush(fill),
+                        Stroke = new SolidColorBrush(stroke),
                         StrokeThickness = 1
                     };
 
                     Canvas.SetLeft(rect, x + 1);
                     Canvas.SetTop(rect, y + 1);
                     PreviewCanvas.Children.Add(rect);
+
+                    // Add label for highlight / snap preview zones
+                    if (zoneCounter == highlightIdx || zoneCounter == snapIdx)
+                    {
+                        string label = zoneCounter == highlightIdx ? "Highlight" : "Snap";
+                        var lbl = new TextBlock
+                        {
+                            Text = label,
+                            FontSize = 9,
+                            Foreground = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)),
+                            HorizontalAlignment = HorizontalAlignment.Center
+                        };
+                        Canvas.SetLeft(lbl, x + 4);
+                        Canvas.SetTop(lbl, y + 3);
+                        PreviewCanvas.Children.Add(lbl);
+                    }
+
+                    zoneCounter++;
                     y += cellH;
                 }
                 x += colW;
@@ -589,11 +663,19 @@ namespace ScreenGrid
                 Appearance = new OverlayAppearance
                 {
                     OverlayAlpha = src.Appearance.OverlayAlpha,
-                    AccentColor = src.Appearance.AccentColor,
+                    ZoneR = src.Appearance.ZoneR,
+                    ZoneG = src.Appearance.ZoneG,
+                    ZoneB = src.Appearance.ZoneB,
                     ZoneFillAlpha = src.Appearance.ZoneFillAlpha,
                     ZoneBorderAlpha = src.Appearance.ZoneBorderAlpha,
+                    HighlightR = src.Appearance.HighlightR,
+                    HighlightG = src.Appearance.HighlightG,
+                    HighlightB = src.Appearance.HighlightB,
                     HighlightFillAlpha = src.Appearance.HighlightFillAlpha,
                     HighlightBorderAlpha = src.Appearance.HighlightBorderAlpha,
+                    SnapPreviewR = src.Appearance.SnapPreviewR,
+                    SnapPreviewG = src.Appearance.SnapPreviewG,
+                    SnapPreviewB = src.Appearance.SnapPreviewB,
                     SnapPreviewFillAlpha = src.Appearance.SnapPreviewFillAlpha,
                     SnapPreviewBorderAlpha = src.Appearance.SnapPreviewBorderAlpha,
                 }

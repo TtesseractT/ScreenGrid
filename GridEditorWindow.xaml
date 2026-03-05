@@ -122,60 +122,127 @@
                 <!-- Appearance Settings -->
                 <Border Grid.Row="3" Margin="0,10,0,0" Background="#111124" BorderBrush="#3b3b58"
                         BorderThickness="1" CornerRadius="6" Padding="10">
-                    <StackPanel>
-                        <TextBlock Text="Overlay Appearance" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="#d8dcff" Margin="0,0,0,8"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <TextBlock Text="Overlay Appearance" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="#d8dcff" Margin="0,0,0,6"/>
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
+                            <!-- Background Opacity -->
+                            <TextBlock Text="Background Opacity" Foreground="#aab" FontSize="11" Margin="0,0,0,2"
+                                       ToolTip="Overlay darkness (0=transparent, 255=opaque)"/>
+                            <Slider x:Name="SliderOverlayAlpha" Minimum="0" Maximum="255"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,0,0,8"
+                                    ValueChanged="OnColorSliderChanged"/>
 
-                            <!-- Accent Color -->
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Accent Color"
-                                       Foreground="#aab" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,6"/>
-                            <TextBox x:Name="TxtAccentColor" Grid.Row="0" Grid.Column="1"
-                                     Width="90" Height="26" FontSize="12" HorizontalAlignment="Left"
-                                     Background="#2a2a3e" Foreground="White" BorderBrush="#444466"
-                                     Padding="4,2" VerticalContentAlignment="Center" Margin="0,0,0,6"
-                                     ToolTip="Hex color e.g. #008CFF" LostFocus="OnAppearanceChanged"/>
+                            <!-- ── Zone Color ── -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="Zone Color" Foreground="#ccd0ff" FontSize="12"
+                                           FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Rectangle x:Name="SwatchZone" Width="14" Height="14"
+                                           RadiusX="2" RadiusY="2" Margin="8,0,0,0"
+                                           Stroke="#555" StrokeThickness="1"/>
+                            </StackPanel>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="R" Foreground="#ff6b6b" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderZoneR" Grid.Row="0" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                                <TextBlock Grid.Row="1" Text="G" Foreground="#6bff6b" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderZoneG" Grid.Row="1" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                                <TextBlock Grid.Row="2" Text="B" Foreground="#6ba8ff" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderZoneB" Grid.Row="2" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                            </Grid>
 
-                            <!-- Overlay BG Opacity -->
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Overlay BG"
-                                       Foreground="#aab" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,6"
-                                       ToolTip="Background darkness (0=transparent, 255=opaque)"/>
-                            <Slider x:Name="SliderOverlayAlpha" Grid.Row="1" Grid.Column="1"
-                                    Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Margin="0,0,0,6" ValueChanged="OnSliderChanged"/>
+                            <!-- ── Highlight Color ── -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="Highlight Color" Foreground="#ccd0ff" FontSize="12"
+                                           FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Rectangle x:Name="SwatchHighlight" Width="14" Height="14"
+                                           RadiusX="2" RadiusY="2" Margin="8,0,0,0"
+                                           Stroke="#555" StrokeThickness="1"/>
+                            </StackPanel>
+                            <Grid Margin="0,0,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="R" Foreground="#ff6b6b" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderHighlightR" Grid.Row="0" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                                <TextBlock Grid.Row="1" Text="G" Foreground="#6bff6b" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderHighlightG" Grid.Row="1" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                                <TextBlock Grid.Row="2" Text="B" Foreground="#6ba8ff" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderHighlightB" Grid.Row="2" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                            </Grid>
+                            <TextBlock Text="Opacity" Foreground="#aab" FontSize="11" Margin="0,0,0,2"/>
+                            <Slider x:Name="SliderHighlightAlpha" Minimum="0" Maximum="255"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,0,0,8"
+                                    ValueChanged="OnColorSliderChanged"/>
 
-                            <!-- Highlight Opacity -->
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Highlight"
-                                       Foreground="#aab" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,6"
-                                       ToolTip="Hovered zone fill opacity (lower = subtler)"/>
-                            <Slider x:Name="SliderHighlightAlpha" Grid.Row="2" Grid.Column="1"
-                                    Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Margin="0,0,0,6" ValueChanged="OnSliderChanged"/>
+                            <!-- ── Snap Preview Color ── -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="Snap Preview Color" Foreground="#ccd0ff" FontSize="12"
+                                           FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Rectangle x:Name="SwatchSnap" Width="14" Height="14"
+                                           RadiusX="2" RadiusY="2" Margin="8,0,0,0"
+                                           Stroke="#555" StrokeThickness="1"/>
+                            </StackPanel>
+                            <Grid Margin="0,0,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="R" Foreground="#ff6b6b" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderSnapR" Grid.Row="0" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                                <TextBlock Grid.Row="1" Text="G" Foreground="#6bff6b" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderSnapG" Grid.Row="1" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                                <TextBlock Grid.Row="2" Text="B" Foreground="#6ba8ff" FontSize="10" VerticalAlignment="Center"/>
+                                <Slider x:Name="SliderSnapB" Grid.Row="2" Grid.Column="1"
+                                        Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Margin="0,0,0,1" ValueChanged="OnColorSliderChanged"/>
+                            </Grid>
+                            <TextBlock Text="Opacity" Foreground="#aab" FontSize="11" Margin="0,0,0,2"/>
+                            <Slider x:Name="SliderSnapAlpha" Minimum="0" Maximum="255"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,0,0,8"
+                                    ValueChanged="OnColorSliderChanged"/>
 
-                            <!-- Snap Preview Opacity -->
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Snap Preview"
-                                       Foreground="#aab" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,4"
-                                       ToolTip="Projected window preview fill opacity (higher = more visible)"/>
-                            <Slider x:Name="SliderSnapAlpha" Grid.Row="3" Grid.Column="1"
-                                    Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Margin="0,0,0,4" ValueChanged="OnSliderChanged"/>
-                        </Grid>
-
-                        <Button x:Name="BtnResetAppearance" Style="{StaticResource FlatBtn}"
-                                Content="Reset Appearance" Click="OnResetAppearance"
-                                HorizontalAlignment="Left" Margin="0,6,0,0" Padding="10,5"/>
-                    </StackPanel>
+                            <Button x:Name="BtnResetAppearance" Style="{StaticResource FlatBtn}"
+                                    Content="Reset Colors" Click="OnResetAppearance"
+                                    HorizontalAlignment="Left" Margin="0,4,0,0" Padding="10,5"/>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Border>
             </Grid>
         </Border>

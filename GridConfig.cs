@@ -77,8 +77,10 @@ namespace ScreenGrid
         /// <summary>Overlay background alpha (0-255). Default 200.</summary>
         public int OverlayAlpha { get; set; } = 200;
 
-        /// <summary>Accent color for highlighted zone and snap preview, as hex (#RRGGBB). Default #008CFF.</summary>
-        public string AccentColor { get; set; } = "#008CFF";
+        // ── Zone color (grid cells when NOT highlighted) ────────────
+        public byte ZoneR { get; set; } = 255;
+        public byte ZoneG { get; set; } = 255;
+        public byte ZoneB { get; set; } = 255;
 
         /// <summary>Zone grid cell fill alpha when NOT highlighted (0-255). Default 25.</summary>
         public int ZoneFillAlpha { get; set; } = 25;
@@ -86,39 +88,27 @@ namespace ScreenGrid
         /// <summary>Zone grid cell border alpha (0-255). Default 65.</summary>
         public int ZoneBorderAlpha { get; set; } = 65;
 
+        // ── Highlight color (hovered zone) ──────────────────────────
+        public byte HighlightR { get; set; } = 0;
+        public byte HighlightG { get; set; } = 140;
+        public byte HighlightB { get; set; } = 255;
+
         /// <summary>Highlighted zone fill alpha (0-255). Lower = more transparent. Default 35.</summary>
         public int HighlightFillAlpha { get; set; } = 35;
 
         /// <summary>Highlighted zone border alpha (0-255). Default 180.</summary>
         public int HighlightBorderAlpha { get; set; } = 180;
 
+        // ── Snap preview color (projected window outline) ───────────
+        public byte SnapPreviewR { get; set; } = 0;
+        public byte SnapPreviewG { get; set; } = 140;
+        public byte SnapPreviewB { get; set; } = 255;
+
         /// <summary>Snap preview (projected window) fill alpha (0-255). Higher = more opaque. Default 100.</summary>
         public int SnapPreviewFillAlpha { get; set; } = 100;
 
         /// <summary>Snap preview border alpha (0-255). Default 220.</summary>
         public int SnapPreviewBorderAlpha { get; set; } = 220;
-
-        /// <summary>Parse the AccentColor hex string to RGB bytes.</summary>
-        [JsonIgnore]
-        public (byte R, byte G, byte B) AccentRgb
-        {
-            get
-            {
-                try
-                {
-                    string hex = AccentColor.TrimStart('#');
-                    if (hex.Length == 6)
-                    {
-                        byte r = Convert.ToByte(hex[..2], 16);
-                        byte g = Convert.ToByte(hex[2..4], 16);
-                        byte b = Convert.ToByte(hex[4..6], 16);
-                        return (r, g, b);
-                    }
-                }
-                catch { }
-                return (0, 140, 255); // fallback
-            }
-        }
     }
 
     /// <summary>

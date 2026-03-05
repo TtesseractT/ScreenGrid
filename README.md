@@ -6,6 +6,20 @@
 
 # ScreenGrid
 
+<p align="center">
+  <a href="https://github.com/TtesseractT/ScreenGrid/releases/latest/download/ScreenGridSetup.exe">
+    <img src="https://img.shields.io/badge/⬇_Download_Installer-66_MB-blue?style=for-the-badge&logo=windows" alt="Download Installer">
+  </a>
+  &nbsp;
+  <a href="https://github.com/TtesseractT/ScreenGrid/releases/latest/download/ScreenGrid-standalone.exe">
+    <img src="https://img.shields.io/badge/⬇_Standalone_EXE-71_MB-green?style=for-the-badge" alt="Download Standalone">
+  </a>
+  &nbsp;
+  <a href="https://github.com/TtesseractT/ScreenGrid/releases/latest/download/ScreenGrid-small.exe">
+    <img src="https://img.shields.io/badge/⬇_Small_EXE_(needs_.NET)-200_KB-orange?style=for-the-badge" alt="Download Small">
+  </a>
+</p>
+
 A lightweight, open-source window-snapping tool for **ultrawide monitors** on Windows. Hold **Shift** while dragging any window to see a customizable grid overlay, then drop onto a zone to snap instantly.
 
 Built for displays like 5120×1440 where Windows' built-in snap (halves/quarters) leaves too much wasted space.

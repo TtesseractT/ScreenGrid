@@ -3,6 +3,7 @@ bin/
 obj/
 publish/
 publish-small/
+installer-output/
 
 # IDE
 .vs/

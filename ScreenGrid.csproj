@@ -10,6 +10,7 @@
     <RootNamespace>ScreenGrid</RootNamespace>
     <AssemblyName>ScreenGrid</AssemblyName>
     <Nullable>enable</Nullable>
+    <ApplicationIcon>docs\screengrid.ico</ApplicationIcon>
 
     <!-- Publish optimization -->
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>

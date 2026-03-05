@@ -57,7 +57,34 @@ namespace ScreenGrid
             menu.Items.Add(header);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Create / Edit Grid", null, (_, _) => ShowGridEditor());
-            menu.Items.Add("Load Grid from File…", null, (_, _) => LoadGridFromFile());            menu.Items.Add("Reset Grid to Defaults", null, (_, _) => ResetGridToDefaults());            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add("Load Grid from File…", null, (_, _) => LoadGridFromFile());
+            menu.Items.Add("Reset Grid to Defaults", null, (_, _) => ResetGridToDefaults());
+            menu.Items.Add(new ToolStripSeparator());
+
+            var startupItem = new ToolStripMenuItem("Run at Startup")
+            {
+                CheckOnClick = true,
+                Checked = StartupManager.IsRegistered()
+            };
+            startupItem.CheckedChanged += (_, _) =>
+            {
+                try
+                {
+                    if (startupItem.Checked)
+                        StartupManager.Register();
+                    else
+                        StartupManager.Unregister();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to update startup setting:\n{ex.Message}",
+                        "ScreenGrid", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    startupItem.Checked = StartupManager.IsRegistered();
+                }
+            };
+            menu.Items.Add(startupItem);
+
+            menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("How to use", null, (_, _) => ShowUsageInfo());
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Exit", null, (_, _) => ExitApp());

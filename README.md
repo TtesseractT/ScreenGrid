@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/github/license/TtesseractT/ScreenGrid" alt="License">
 </p>
 
-# ScreenGrid
+# ScreenGrid - Window Manager
 
 <p align="center">
   <a href="https://github.com/TtesseractT/ScreenGrid/releases/latest/download/ScreenGridSetup.exe">

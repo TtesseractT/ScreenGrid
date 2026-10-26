@@ -345,5 +345,113 @@ namespace ScreenGrid.Tests
             Assert.NotNull(config.Rows);
             Assert.Empty(config.Rows);
         }
+
+        // ── Overlay pages ───────────────────────────────────────────
+
+        [Fact]
+        public void GetPages_DefaultConfig_PairsRows_LastOdd()
+        {
+            var pages = GridConfig.CreateDefault().GetPages(); // 11 rows
+            Assert.Equal(6, pages.Count);
+            Assert.Equal((0, 2), pages[0]);
+            Assert.Equal((10, 1), pages[5]);
+        }
+
+        [Fact]
+        public void GetPages_NoRows_IsEmpty()
+        {
+            Assert.Empty(new GridConfig().GetPages());
+        }
+
+        [Fact]
+        public void GetPages_OwnPageRow_IsAlone_AndRestStillPair()
+        {
+            var config = GridConfig.CreateDefault();
+            config.Rows[2].OwnPage = true; // THIRDS
+
+            var pages = config.GetPages();
+            Assert.Equal((0, 2), pages[0]);
+            Assert.Equal((2, 1), pages[1]);
+            Assert.Equal((3, 2), pages[2]);
+        }
+
+        [Fact]
+        public void GetPages_RowBeforeOwnPage_IsAlsoAlone()
+        {
+            var config = GridConfig.CreateDefault();
+            config.Rows[1].OwnPage = true;
+
+            var pages = config.GetPages();
+            Assert.Equal((0, 1), pages[0]);
+            Assert.Equal((1, 1), pages[1]);
+            Assert.Equal((2, 2), pages[2]);
+        }
+
+        [Fact]
+        public void GetPages_AllOwnPage_OneRowPerPage()
+        {
+            var config = GridConfig.CreateDefault();
+            foreach (var r in config.Rows) r.OwnPage = true;
+            Assert.Equal(11, config.GetPages().Count);
+        }
+
+        [Fact]
+        public void GetPageIndex_MatchesGetPages()
+        {
+            var config = GridConfig.CreateDefault();
+            config.Rows[2].OwnPage = true;
+
+            Assert.Equal(0, config.GetPageIndex(1));
+            Assert.Equal(1, config.GetPageIndex(2));
+            Assert.Equal(2, config.GetPageIndex(3));
+            Assert.Equal(2, config.GetPageIndex(4));
+        }
+
+        [Fact]
+        public void OwnPage_RoundTrips_AndIsOmittedWhenFalse()
+        {
+            var config = GridConfig.CreateDefault();
+            config.Rows[0].OwnPage = true;
+            string path = Path.Combine(_tempDir, "ownpage.screengrid");
+            config.SaveToFile(path);
+
+            string json = File.ReadAllText(path);
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(json, "\"ownPage\""));
+
+            var loaded = GridConfig.LoadFromFile(path);
+            Assert.True(loaded.Rows[0].OwnPage);
+            Assert.False(loaded.Rows[1].OwnPage);
+        }
+
+        // ── Per-band columns ────────────────────────────────────────
+
+        [Fact]
+        public void BandRatios_RoundTrip_AndOmittedWhenNull()
+        {
+            var config = new GridConfig { Name = "Desk" };
+            config.Rows.Add(new GridRowDef { Name = "DESK", Ratios = [1, 3], HeightRatios = [1, 1], BandRatios = [[1, 3], [1, 1]] });
+            config.Rows.Add(new GridRowDef { Name = "HALVES", Ratios = [1, 1] });
+            string path = Path.Combine(_tempDir, "bands.screengrid");
+            config.SaveToFile(path);
+
+            string json = File.ReadAllText(path);
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(json, "\"bandRatios\""));
+
+            var loaded = GridConfig.LoadFromFile(path);
+            Assert.Equal([1, 3], loaded.Rows[0].GetBandRatios(0));
+            Assert.Equal([1, 1], loaded.Rows[0].GetBandRatios(1));
+            Assert.Null(loaded.Rows[1].BandRatios);
+        }
+
+        [Fact]
+        public void LoadFromFile_WithoutBandRatios_UsesRatiosForAllBands()
+        {
+            string path = Path.Combine(_tempDir, "legacy.screengrid");
+            File.WriteAllText(path, "{ \"rows\": [ { \"name\": \"THIRDS ½H\", \"ratios\": [1, 1, 1], \"heightRatios\": [1, 1] } ] }");
+
+            var row = GridConfig.LoadFromFile(path).Rows[0];
+            Assert.Null(row.BandRatios);
+            Assert.Equal([1, 1, 1], row.GetBandRatios(1));
+        }
     }
 }

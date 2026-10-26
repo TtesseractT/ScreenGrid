@@ -84,6 +84,7 @@
                 <Run Text="Quick tips: " FontWeight="SemiBold"/>
                 <Run Text="Columns (W) sets left/right widths (example: 1:1:1).  " />
                 <Run Text="Height (H) is optional vertical split (example: 1:1). Leave H empty for full-height zones.  " />
+                <Run Text="Use / in W to give each height band its own columns (example: 1:3 / 1:1).  " />
                 <Run Text="The top row appears first in the Shift overlay." />
             </TextBlock>
         </Border>

@@ -100,8 +100,8 @@ namespace ScreenGrid
                 "HOW TO USE:\n" +
                 "1. Start dragging any window by its title bar.\n" +
                 "2. While dragging, hold the SHIFT key.\n" +
-                "3. Two grid variants are shown at a time.\n" +
-                "4. Scroll the mouse wheel (up/down) to switch pairs.\n" +
+                "3. One or two grid variants are shown at a time.\n" +
+                "4. Scroll the mouse wheel (up/down) to switch pages.\n" +
                 "5. Drag to the desired zone – it highlights.\n" +
                 "6. Release the mouse button to snap the window.\n\n" +
                 "Release SHIFT at any time to cancel.\n" +

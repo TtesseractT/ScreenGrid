@@ -28,22 +28,50 @@ namespace ScreenGrid
         /// </summary>
         public List<int>? HeightRatios { get; set; }
 
+        /// <summary>
+        /// Column ratios per height band, one entry per band in <see cref="HeightRatios"/>.
+        /// Null = every band uses <see cref="Ratios"/>. E.g. [[1,3],[1,1]] with HeightRatios [1,1].
+        /// </summary>
+        public List<List<int>>? BandRatios { get; set; }
+
         /// <summary>Whether this row has vertical subdivisions.</summary>
         [JsonIgnore]
         public bool HasHeightSplit => HeightRatios != null && HeightRatios.Count > 1;
 
-        /// <summary>Creates the display label for a column (e.g. "1/3" or "4").</summary>
-        public string GetColumnLabel(int colIndex)
+        /// <summary>Number of height bands (1 when there is no height split).</summary>
+        [JsonIgnore]
+        public int BandCount => HasHeightSplit ? HeightRatios!.Count : 1;
+
+        /// <summary>
+        /// Column ratios for the given height band. Falls back to <see cref="Ratios"/>
+        /// when no per-band ratios are set or they don't match the number of bands.
+        /// </summary>
+        public List<int> GetBandRatios(int band)
         {
+            if (BandRatios != null && BandRatios.Count == BandCount
+                && band >= 0 && band < BandRatios.Count && BandRatios[band].Count > 0)
+                return BandRatios[band];
+            return Ratios;
+        }
+
+        /// <summary>Show this row on its own overlay page.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool OwnPage { get; set; }
+
+        /// <summary>Creates the display label for a column (e.g. "1/3" or "4") in the given height band.</summary>
+        public string GetColumnLabel(int colIndex, int band = 0)
+        {
+            var ratios = GetBandRatios(band);
+
             // If all ratios are equal, show "col/total" style
             bool allEqual = true;
-            for (int i = 1; i < Ratios.Count; i++)
-                if (Ratios[i] != Ratios[0]) { allEqual = false; break; }
+            for (int i = 1; i < ratios.Count; i++)
+                if (ratios[i] != ratios[0]) { allEqual = false; break; }
 
             if (allEqual)
-                return $"{colIndex + 1}/{Ratios.Count}";
+                return $"{colIndex + 1}/{ratios.Count}";
 
-            return Ratios[colIndex].ToString();
+            return ratios[colIndex].ToString();
         }
 
         /// <summary>Creates the display label for a vertical sub-row (e.g. "Top", "Mid", "Bot").</summary>
@@ -124,6 +152,35 @@ namespace ScreenGrid
 
         /// <summary>Overlay appearance customization.</summary>
         public OverlayAppearance Appearance { get; set; } = new();
+
+        // ── Overlay pages ───────────────────────────────────────────
+
+        /// <summary>
+        /// Groups rows into overlay pages: two consecutive rows per page,
+        /// except rows marked <see cref="GridRowDef.OwnPage"/>, which get a page to themselves.
+        /// </summary>
+        public List<(int Start, int Count)> GetPages()
+        {
+            var pages = new List<(int Start, int Count)>();
+            for (int i = 0; i < Rows.Count; )
+            {
+                bool pair = !Rows[i].OwnPage && i + 1 < Rows.Count && !Rows[i + 1].OwnPage;
+                int count = pair ? 2 : 1;
+                pages.Add((i, count));
+                i += count;
+            }
+            return pages;
+        }
+
+        /// <summary>Zero-based overlay page that shows the given row.</summary>
+        public int GetPageIndex(int rowIndex)
+        {
+            var pages = GetPages();
+            for (int p = 0; p < pages.Count; p++)
+                if (rowIndex < pages[p].Start + pages[p].Count)
+                    return p;
+            return Math.Max(0, pages.Count - 1);
+        }
 
         /// <summary>File extension for grid config files.</summary>
         public const string FileExtension = ".screengrid";

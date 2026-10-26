@@ -156,5 +156,48 @@ namespace ScreenGrid.Tests
             Assert.Equal("2", row.GetHeightLabel(0));
             Assert.Equal("1", row.GetHeightLabel(1));
         }
+
+        // ── Per-band columns ────────────────────────────────────────
+
+        [Fact]
+        public void GetBandRatios_NoBandRatios_ReturnsRatios()
+        {
+            var row = new GridRowDef { Ratios = [1, 1], HeightRatios = [1, 1] };
+            Assert.Equal([1, 1], row.GetBandRatios(0));
+            Assert.Equal([1, 1], row.GetBandRatios(1));
+        }
+
+        [Fact]
+        public void GetBandRatios_PerBand_ReturnsEachBand()
+        {
+            var row = new GridRowDef { Ratios = [1, 3], HeightRatios = [1, 1], BandRatios = [[1, 3], [1, 1]] };
+            Assert.Equal([1, 3], row.GetBandRatios(0));
+            Assert.Equal([1, 1], row.GetBandRatios(1));
+        }
+
+        [Fact]
+        public void GetBandRatios_ThreeBands_ReturnsEachBand()
+        {
+            var row = new GridRowDef { Ratios = [1, 1], HeightRatios = [1, 1, 1], BandRatios = [[1, 1], [1, 2, 1], [1]] };
+            Assert.Equal([1, 2, 1], row.GetBandRatios(1));
+            Assert.Equal([1], row.GetBandRatios(2));
+        }
+
+        [Fact]
+        public void GetBandRatios_CountMismatch_FallsBackToRatios()
+        {
+            // Height split removed after per-band columns were set
+            var row = new GridRowDef { Ratios = [1, 3], BandRatios = [[1, 3], [1, 1]] };
+            Assert.Equal(1, row.BandCount);
+            Assert.Equal([1, 3], row.GetBandRatios(0));
+        }
+
+        [Fact]
+        public void GetColumnLabel_UsesBandRatios()
+        {
+            var row = new GridRowDef { Ratios = [1, 3], HeightRatios = [1, 1], BandRatios = [[1, 3], [1, 1]] };
+            Assert.Equal("3", row.GetColumnLabel(1, 0));
+            Assert.Equal("2/2", row.GetColumnLabel(1, 1));
+        }
     }
 }

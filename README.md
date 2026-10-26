@@ -108,7 +108,9 @@ Right-click the tray icon → **Create / Edit Grid** to open the editor:
 
 - Use **preset buttons** to quickly add common rows (Halves, Thirds, 4:3, etc.)
 - Click **+ Custom…** to enter any ratio - e.g. `3:2:1` or `16:9`
+- Use `/` to give each height band its own columns - e.g. Columns `1:3 / 1:1` with Height `1:1`
 - **Reorder** rows with ▲/▼ - top row appears at the top of the overlay
+- Tick **Own page** to give a row its own overlay page
 - **Rename** rows to anything you like
 - Click **Apply & Close** to activate immediately
 - Click **Save to File…** to export and share your layout

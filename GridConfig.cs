@@ -32,6 +32,10 @@ namespace ScreenGrid
         [JsonIgnore]
         public bool HasHeightSplit => HeightRatios != null && HeightRatios.Count > 1;
 
+        /// <summary>Show this row on its own overlay page.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool OwnPage { get; set; }
+
         /// <summary>Creates the display label for a column (e.g. "1/3" or "4").</summary>
         public string GetColumnLabel(int colIndex)
         {
@@ -124,6 +128,35 @@ namespace ScreenGrid
 
         /// <summary>Overlay appearance customization.</summary>
         public OverlayAppearance Appearance { get; set; } = new();
+
+        // ── Overlay pages ───────────────────────────────────────────
+
+        /// <summary>
+        /// Groups rows into overlay pages: two consecutive rows per page,
+        /// except rows marked <see cref="GridRowDef.OwnPage"/>, which get a page to themselves.
+        /// </summary>
+        public List<(int Start, int Count)> GetPages()
+        {
+            var pages = new List<(int Start, int Count)>();
+            for (int i = 0; i < Rows.Count; )
+            {
+                bool pair = !Rows[i].OwnPage && i + 1 < Rows.Count && !Rows[i + 1].OwnPage;
+                int count = pair ? 2 : 1;
+                pages.Add((i, count));
+                i += count;
+            }
+            return pages;
+        }
+
+        /// <summary>Zero-based overlay page that shows the given row.</summary>
+        public int GetPageIndex(int rowIndex)
+        {
+            var pages = GetPages();
+            for (int p = 0; p < pages.Count; p++)
+                if (rowIndex < pages[p].Start + pages[p].Count)
+                    return p;
+            return Math.Max(0, pages.Count - 1);
+        }
 
         /// <summary>File extension for grid config files.</summary>
         public const string FileExtension = ".screengrid";

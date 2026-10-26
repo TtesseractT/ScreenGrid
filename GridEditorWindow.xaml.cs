@@ -107,11 +107,14 @@ namespace ScreenGrid
         private void RebuildRowsUI()
         {
             RowsPanel.Children.Clear();
+            var pages = _config.GetPages();
 
             for (int i = 0; i < _config.Rows.Count; i++)
             {
                 var row = _config.Rows[i];
                 int rowIndex = i;
+                int page = _config.GetPageIndex(i);
+                int rowOnPage = i - pages[page].Start;
 
                 var rowPanel = new Border
                 {
@@ -119,7 +122,7 @@ namespace ScreenGrid
                     BorderBrush     = new SolidColorBrush(Color.FromArgb(255, 60, 60, 90)),
                     BorderThickness = new Thickness(1),
                     CornerRadius    = new CornerRadius(5),
-                    Margin          = new Thickness(0, 0, 0, 6),
+                    Margin          = new Thickness(0, i > 0 && rowOnPage == 0 ? 14 : 0, 0, 6),
                     Padding         = new Thickness(10, 10, 10, 10)
                 };
 
@@ -144,7 +147,7 @@ namespace ScreenGrid
 
                 var lblTitle = new TextBlock
                 {
-                    Text = "Row",
+                    Text = $"Row {rowOnPage + 1} · Page {page + 1}",
                     Foreground = new SolidColorBrush(Color.FromArgb(255, 180, 180, 220)),
                     FontSize = 12,
                     Margin = new Thickness(0, 0, 0, 4)
@@ -153,6 +156,22 @@ namespace ScreenGrid
                 header.Children.Add(lblTitle);
 
                 var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+                var chkOwnPage = new CheckBox
+                {
+                    Content           = "Own page",
+                    ToolTip           = "Show this row on its own overlay page",
+                    IsChecked         = row.OwnPage,
+                    Foreground        = new SolidColorBrush(Color.FromArgb(255, 180, 180, 220)),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin            = new Thickness(0, 0, 12, 0)
+                };
+                chkOwnPage.Click += (_, _) =>
+                {
+                    row.OwnPage = chkOwnPage.IsChecked == true;
+                    RebuildRowsUI();
+                };
+                actions.Children.Add(chkOwnPage);
+
                 var btnPreview = CreateSmallButton("Preview", "Show this row on the right", 64);
                 btnPreview.Click += (_, _) =>
                 {
@@ -377,7 +396,8 @@ namespace ScreenGrid
             {
                 Name = source.Name + " Copy",
                 Ratios = new List<int>(source.Ratios),
-                HeightRatios = source.HeightRatios != null ? new List<int>(source.HeightRatios) : null
+                HeightRatios = source.HeightRatios != null ? new List<int>(source.HeightRatios) : null,
+                OwnPage = source.OwnPage
             };
 
             _config.Rows.Insert(index + 1, copy);
@@ -685,7 +705,8 @@ namespace ScreenGrid
                 {
                     Name = row.Name,
                     Ratios = new List<int>(row.Ratios),
-                    HeightRatios = row.HeightRatios != null ? new List<int>(row.HeightRatios) : null
+                    HeightRatios = row.HeightRatios != null ? new List<int>(row.HeightRatios) : null,
+                    OwnPage = row.OwnPage
                 });
             return clone;
         }

@@ -18,7 +18,7 @@ namespace ScreenGrid
         private readonly Dictionary<GridZone, Border> _zoneBorders = new();
         private GridZone? _highlightedZone;
         private Rectangle? _snapPreview;
-        private int _visiblePairStartRow;
+        private int _visiblePage;
 
         // ── Screen info (physical pixels) ───────────────────────────────
         private NativeMethods.RECT _workArea;
@@ -91,27 +91,24 @@ namespace ScreenGrid
         public void SetGridConfig(GridConfig config)
         {
             _gridConfig = config;
-            _visiblePairStartRow = 0;
+            _visiblePage = 0;
             UpdateColorsFromAppearance();
         }
 
         public void ResetVariantPair()
         {
-            _visiblePairStartRow = 0;
+            _visiblePage = 0;
         }
 
         public void ScrollVariantPair(int direction)
         {
-            int rowCount = _gridConfig.Rows.Count;
-            if (rowCount <= 2) return;
+            int pageCount = _gridConfig.GetPages().Count;
+            if (pageCount <= 1) return;
 
-            int maxStart = Math.Max(0, ((rowCount - 1) / 2) * 2);
-            int next = _visiblePairStartRow + (direction > 0 ? 2 : -2);
-            if (next < 0) next = 0;
-            if (next > maxStart) next = maxStart;
-            if (next == _visiblePairStartRow) return;
+            int next = Math.Clamp(_visiblePage + (direction > 0 ? 1 : -1), 0, pageCount - 1);
+            if (next == _visiblePage) return;
 
-            _visiblePairStartRow = next;
+            _visiblePage = next;
             _highlightedZone = null;
             BuildZones();
             RenderZones();
@@ -293,14 +290,15 @@ namespace ScreenGrid
         private List<GridRowDef> GetVisibleRows()
         {
             var rows = _gridConfig.Rows;
-            if (rows.Count <= 2)
+            var pages = _gridConfig.GetPages();
+            if (pages.Count <= 1)
                 return rows;
 
-            if (_visiblePairStartRow >= rows.Count)
-                _visiblePairStartRow = Math.Max(0, ((rows.Count - 1) / 2) * 2);
+            if (_visiblePage >= pages.Count)
+                _visiblePage = pages.Count - 1;
 
-            int take = Math.Min(2, rows.Count - _visiblePairStartRow);
-            return rows.GetRange(_visiblePairStartRow, take);
+            var (start, count) = pages[_visiblePage];
+            return rows.GetRange(start, count);
         }
 
         // ── Zone rendering ──────────────────────────────────────────────
@@ -323,8 +321,8 @@ namespace ScreenGrid
             string pairTitle = visibleRows.Count == 2
                 ? $"{visibleRows[0].Name}  +  {visibleRows[1].Name}"
                 : visibleRows[0].Name;
-            int totalPairs = Math.Max(1, (_gridConfig.Rows.Count + 1) / 2);
-            int currentPair = (_visiblePairStartRow / 2) + 1;
+            int totalPairs = Math.Max(1, _gridConfig.GetPages().Count);
+            int currentPair = _visiblePage + 1;
 
             var headerBar = new Border
             {

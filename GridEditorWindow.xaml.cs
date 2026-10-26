@@ -253,7 +253,7 @@ namespace ScreenGrid
 
                 var txtRatios = new TextBox
                 {
-                    Text         = string.Join(" : ", row.Ratios),
+                    Text         = FormatRatios(row),
                     Height       = 30,
                     FontSize     = 13,
                     Background   = new SolidColorBrush(Color.FromArgb(255, 42, 42, 62)),
@@ -291,7 +291,7 @@ namespace ScreenGrid
                     VerticalContentAlignment = VerticalAlignment.Center,
                     ToolTip      = "Examples: 1:1 (top/bottom), 1:1:1 (thirds), empty (full height)"
                 };
-                txtHeight.LostFocus += (_, _) => ParseHeightRatios(txtHeight, row);
+                txtHeight.LostFocus += (_, _) => { ParseHeightRatios(txtHeight, row); ParseRatios(txtRatios, row); };
                 txtHeight.LostFocus += (_, _) => { if (_previewRowIndex == rowIndex) RenderOrientationPreview(); };
                 heightPanel.Children.Add(txtHeight);
 
@@ -302,6 +302,7 @@ namespace ScreenGrid
                     row.HeightRatios = null;
                     txtHeight.Text = "";
                     txtHeight.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+                    ParseRatios(txtRatios, row);
                     if (_previewRowIndex == rowIndex) RenderOrientationPreview();
                 };
                 heightQuick.Children.Add(btnFullHeight);
@@ -312,6 +313,7 @@ namespace ScreenGrid
                     row.HeightRatios = new List<int> { 1, 1 };
                     txtHeight.Text = "1 : 1";
                     txtHeight.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+                    ParseRatios(txtRatios, row);
                     if (_previewRowIndex == rowIndex) RenderOrientationPreview();
                 };
                 heightQuick.Children.Add(btnTopBottom);
@@ -322,6 +324,7 @@ namespace ScreenGrid
                     row.HeightRatios = new List<int> { 1, 1, 1 };
                     txtHeight.Text = "1 : 1 : 1";
                     txtHeight.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
+                    ParseRatios(txtRatios, row);
                     if (_previewRowIndex == rowIndex) RenderOrientationPreview();
                 };
                 heightQuick.Children.Add(btnThirds);
@@ -397,6 +400,7 @@ namespace ScreenGrid
                 Name = source.Name + " Copy",
                 Ratios = new List<int>(source.Ratios),
                 HeightRatios = source.HeightRatios != null ? new List<int>(source.HeightRatios) : null,
+                BandRatios = source.BandRatios?.Select(b => new List<int>(b)).ToList(),
                 OwnPage = source.OwnPage
             };
 
@@ -440,7 +444,6 @@ namespace ScreenGrid
             PreviewCanvas.Children.Add(frame);
 
             var heights = row.HasHeightSplit ? row.HeightRatios! : new List<int> { 1 };
-            int totalCols = Math.Max(1, row.Ratios.Sum());
             int totalHeights = Math.Max(1, heights.Sum());
 
             // Use appearance colors for live preview
@@ -456,19 +459,21 @@ namespace ScreenGrid
                 a.SnapPreviewR, a.SnapPreviewG, a.SnapPreviewB);
             var snapBorderColor = Color.FromArgb(220, a.SnapPreviewR, a.SnapPreviewG, a.SnapPreviewB);
 
-            int totalZones = row.Ratios.Count * heights.Count;
+            int totalZones = Enumerable.Range(0, heights.Count).Sum(r => row.GetBandRatios(r).Count);
             int highlightIdx = 0; // first zone = highlighted
             int snapIdx = totalZones > 1 ? 1 : -1; // second zone = snap preview
 
             int zoneCounter = 0;
-            double x = 2 + pad;
-            for (int c = 0; c < row.Ratios.Count; c++)
+            double y = 2 + pad;
+            for (int r = 0; r < heights.Count; r++)
             {
-                double colW = (width - pad * 2) * row.Ratios[c] / totalCols;
-                double y = 2 + pad;
-                for (int r = 0; r < heights.Count; r++)
+                double cellH = (height - pad * 2) * heights[r] / totalHeights;
+                var bandRatios = row.GetBandRatios(r);
+                int totalCols = Math.Max(1, bandRatios.Sum());
+                double x = 2 + pad;
+                for (int c = 0; c < bandRatios.Count; c++)
                 {
-                    double cellH = (height - pad * 2) * heights[r] / totalHeights;
+                    double colW = (width - pad * 2) * bandRatios[c] / totalCols;
 
                     Color fill, stroke;
                     if (zoneCounter == highlightIdx)
@@ -519,30 +524,44 @@ namespace ScreenGrid
                     }
 
                     zoneCounter++;
-                    y += cellH;
+                    x += colW;
                 }
-                x += colW;
+                y += cellH;
             }
         }
 
+        private static string FormatRatios(GridRowDef row)
+            => row.BandRatios != null
+                ? string.Join(" / ", row.BandRatios.Select(b => string.Join(" : ", b)))
+                : string.Join(" : ", row.Ratios);
+
         private static void ParseRatios(TextBox txt, GridRowDef row)
         {
-            var parts = txt.Text
-                .Replace(",", ":")
-                .Replace(" ", "")
-                .Split(':', StringSplitOptions.RemoveEmptyEntries);
-
-            var parsed = new List<int>();
-            foreach (var p in parts)
+            // "/" separates height bands: one segment = same columns for all bands
+            var bands = new List<List<int>>();
+            foreach (var segment in txt.Text.Split('/', StringSplitOptions.RemoveEmptyEntries))
             {
-                if (int.TryParse(p, out int v) && v > 0)
-                    parsed.Add(v);
+                var parts = segment
+                    .Replace(",", ":")
+                    .Replace(" ", "")
+                    .Split(':', StringSplitOptions.RemoveEmptyEntries);
+
+                var parsed = new List<int>();
+                foreach (var p in parts)
+                {
+                    if (int.TryParse(p, out int v) && v > 0)
+                        parsed.Add(v);
+                }
+
+                if (parsed.Count >= 1)
+                    bands.Add(parsed);
             }
 
-            if (parsed.Count >= 1)
+            if (bands.Count == 1 || (bands.Count > 1 && bands.Count == row.BandCount))
             {
-                row.Ratios = parsed;
-                txt.Text = string.Join(" : ", parsed);
+                row.Ratios = bands[0];
+                row.BandRatios = bands.Count > 1 ? bands : null;
+                txt.Text = FormatRatios(row);
                 txt.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 68, 68, 102));
             }
             else
@@ -706,6 +725,7 @@ namespace ScreenGrid
                     Name = row.Name,
                     Ratios = new List<int>(row.Ratios),
                     HeightRatios = row.HeightRatios != null ? new List<int>(row.HeightRatios) : null,
+                    BandRatios = row.BandRatios?.Select(b => new List<int>(b)).ToList(),
                     OwnPage = row.OwnPage
                 });
             return clone;

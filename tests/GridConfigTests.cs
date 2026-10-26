@@ -422,5 +422,36 @@ namespace ScreenGrid.Tests
             Assert.True(loaded.Rows[0].OwnPage);
             Assert.False(loaded.Rows[1].OwnPage);
         }
+
+        // ── Per-band columns ────────────────────────────────────────
+
+        [Fact]
+        public void BandRatios_RoundTrip_AndOmittedWhenNull()
+        {
+            var config = new GridConfig { Name = "Desk" };
+            config.Rows.Add(new GridRowDef { Name = "DESK", Ratios = [1, 3], HeightRatios = [1, 1], BandRatios = [[1, 3], [1, 1]] });
+            config.Rows.Add(new GridRowDef { Name = "HALVES", Ratios = [1, 1] });
+            string path = Path.Combine(_tempDir, "bands.screengrid");
+            config.SaveToFile(path);
+
+            string json = File.ReadAllText(path);
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(json, "\"bandRatios\""));
+
+            var loaded = GridConfig.LoadFromFile(path);
+            Assert.Equal([1, 3], loaded.Rows[0].GetBandRatios(0));
+            Assert.Equal([1, 1], loaded.Rows[0].GetBandRatios(1));
+            Assert.Null(loaded.Rows[1].BandRatios);
+        }
+
+        [Fact]
+        public void LoadFromFile_WithoutBandRatios_UsesRatiosForAllBands()
+        {
+            string path = Path.Combine(_tempDir, "legacy.screengrid");
+            File.WriteAllText(path, "{ \"rows\": [ { \"name\": \"THIRDS ½H\", \"ratios\": [1, 1, 1], \"heightRatios\": [1, 1] } ] }");
+
+            var row = GridConfig.LoadFromFile(path).Rows[0];
+            Assert.Null(row.BandRatios);
+            Assert.Equal([1, 1, 1], row.GetBandRatios(1));
+        }
     }
 }

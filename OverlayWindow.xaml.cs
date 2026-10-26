@@ -232,40 +232,40 @@ namespace ScreenGrid
                 var rowDef = rows[row];
                 int dispTop = screenTop + row * rowH;
 
-                int totalParts = 0;
-                foreach (int r in rowDef.Ratios) totalParts += r;
-                if (totalParts <= 0) continue;
-
                 // Height ratios (vertical subdivision)
                 var heightRatios = rowDef.HasHeightSplit ? rowDef.HeightRatios! : new List<int> { 1 };
                 int totalHeightParts = 0;
                 foreach (int hr in heightRatios) totalHeightParts += hr;
                 int numVRows = heightRatios.Count;
 
-                int numCols = rowDef.Ratios.Count;
-                int xOffset = screenLeft;
-
-                for (int col = 0; col < numCols; col++)
+                // Vertical sub-rows (bands), each with its own column ratios
+                int snapYOffset = screenTop;
+                for (int vRow = 0; vRow < numVRows; vRow++)
                 {
-                    int w = (int)((double)rowDef.Ratios[col] / totalParts * screenW);
-                    if (col == numCols - 1)
-                        w = screenLeft + screenW - xOffset;
+                    int snapH = (int)((double)heightRatios[vRow] / totalHeightParts * screenH);
+                    if (vRow == numVRows - 1)
+                        snapH = screenTop + screenH - snapYOffset;
 
-                    // Vertical sub-rows within this column
-                    int snapYOffset = screenTop;
-                    for (int vRow = 0; vRow < numVRows; vRow++)
+                    int dispSubH = rowH / numVRows;
+                    int dispSubTop = dispTop + vRow * dispSubH;
+                    if (vRow == numVRows - 1)
+                        dispSubH = dispTop + rowH - dispSubTop;
+
+                    var ratios = rowDef.GetBandRatios(vRow);
+                    int totalParts = 0;
+                    foreach (int r in ratios) totalParts += r;
+
+                    int numCols = totalParts > 0 ? ratios.Count : 0;
+                    int xOffset = screenLeft;
+
+                    for (int col = 0; col < numCols; col++)
                     {
-                        int snapH = (int)((double)heightRatios[vRow] / totalHeightParts * screenH);
-                        if (vRow == numVRows - 1)
-                            snapH = screenTop + screenH - snapYOffset;
-
-                        int dispSubH = rowH / numVRows;
-                        int dispSubTop = dispTop + vRow * dispSubH;
-                        if (vRow == numVRows - 1)
-                            dispSubH = dispTop + rowH - dispSubTop;
+                        int w = (int)((double)ratios[col] / totalParts * screenW);
+                        if (col == numCols - 1)
+                            w = screenLeft + screenW - xOffset;
 
                         // Label: combine column label with height label
-                        string colLabel = rowDef.GetColumnLabel(col);
+                        string colLabel = rowDef.GetColumnLabel(col, vRow);
                         string hLabel = rowDef.GetHeightLabel(vRow);
                         string label = string.IsNullOrEmpty(hLabel) ? colLabel : $"{colLabel} {hLabel}";
 
@@ -279,10 +279,10 @@ namespace ScreenGrid
                             TotalColumns  = numCols
                         });
 
-                        snapYOffset += snapH;
+                        xOffset += w;
                     }
 
-                    xOffset += w;
+                    snapYOffset += snapH;
                 }
             }
         }
